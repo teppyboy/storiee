@@ -19,7 +19,6 @@
     "typescript": "^5.3.3"
   },
   "dependencies": {
-    "happy-dom": "^13.3.8",
     "jsdom": "^24.0.0",
     "pino": "^8.18.0",
     "puppeteer": "^22.0.0",

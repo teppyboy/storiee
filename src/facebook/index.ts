@@ -2,7 +2,6 @@ import * as fs from "node:fs";
 import logger from "../logger.js";
 import { getValue, sleep } from "../utils.js";
 import puppeteer from "puppeteer";
-import { Browser } from "happy-dom";
 import { JSDOM } from "jsdom";
 
 class RemoteVideo {
@@ -17,10 +16,6 @@ class RemoteVideo {
 }
 
 class FacebookStory {
-	_hdBrowser: Browser;
-	constructor() {
-		this._hdBrowser = new Browser();
-	}
 	/**
 	 * Gets the video and audio URLs from a Facebook story.
 	 *
@@ -99,9 +94,6 @@ class FacebookStory {
 		}
 	}
 	getVideosAndAudioUrlsFromHTML(source: string, url: string) {
-		// const page = this._hdBrowser.newPage();
-		// page.content = source;
-		// page.url = url;
 		const dom = new JSDOM(source, {
 			url: url,
 			runScripts: "dangerously",
