@@ -3,6 +3,7 @@ import logger from "../logger.js";
 import { sleep } from "../utils.js";
 import puppeteer from "puppeteer";
 import { Browser } from "happy-dom";
+import { JSDOM } from "jsdom";
 
 class FacebookStory {
 	_hdBrowser: Browser;
@@ -59,16 +60,38 @@ class FacebookStory {
 		page.close();
 		return { videos, audio };
 	}
-	async getVideosAndAudioUrlsFromSource(source: string) {
-		const page = this._hdBrowser.newPage();
-		page.content = source;
-		const document = page.mainFrame.window.document;
-		for (const script of document.querySelectorAll("script")) {
-			script.innerHTML
-		}
+	getVideosAndAudioUrlsFromSource(source: string, url: string) {
+		// const page = this._hdBrowser.newPage();
+		// page.content = source;
+		// page.url = url;
+		const dom = new JSDOM(source, { 
+			url: url,
+			runScripts: "dangerously" 
+		});
 		const videos: string[] = [];
 		const audio: string = "";
+		// const document = page.mainFrame.window.document;
+		const document = dom.window.document;
+		for (const script of document.querySelectorAll("script")) {
+			const length = Number(script.getAttribute("data-content-len"));
+			if (script.innerHTML.length !== length) {
+				logger.debug("Mismatch length: %d", length);
+				logger.debug("Script innerHTML length: %d", script.innerHTML.length);
+			}
+			try {
+				logger.debug(script.innerHTML)
+				const chungus = JSON.parse(script.innerHTML);
+			} catch (e) {
+				logger.debug("Failed to parse script innerHTML: %s", e);
+			}
+		}
 		return { videos, audio };
+	}
+	async getVideosAndAudioUrlsBySource(page: puppeteer.Page, cookie: string, url: string) {
+		await page.setCookie(...cookie as unknown as puppeteer.CookieParam[]);
+		await page.goto(url);
+		const source = await page.content();
+		return this.getVideosAndAudioUrlsFromSource(source, url);
 	}
 }
 

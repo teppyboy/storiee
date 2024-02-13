@@ -72,6 +72,7 @@ if (!process.env.SEGS_URL) {
 }
 const SEGS_URL = process.env.SEGS_URL;
 logger.debug("SEGS_URL: %s", SEGS_URL);
+await facebook.story.getVideosAndAudioUrlsBySource(await getPage(), facebook.getRandomCookie(), SEGS_URL);
 const videoAndAudios = await facebook.story.getVideosAndAudioUrls(await getPage(), facebook.getRandomCookie(), SEGS_URL);
 
 logger.debug("Video & Audio: %o", videoAndAudios);
