@@ -64,7 +64,22 @@ class FacebookStory {
 				await page.goto(url);
 				await viewStory();
 				// Avoid conflict variable name
+				async function returnToFirstStory() {
+					let prevBtn = await page.$$('[aria-label="Previous card"]');
+					while (prevBtn.length > 0) {
+						logger.debug("Clicking previous button..."); 
+						try {
+							await page.bringToFront();
+							await prevBtn[0].click();
+							await sleep(10);	
+						} catch (e) {
+							logger.error(`Failed to click previous button: ${e}`);
+						}
+						prevBtn = await page.$$('[aria-label="Previous card"]');
+					}
+				}
 				{
+					await returnToFirstStory();
 					let nextBtn = await page.$$('[aria-label="Next card"]');
 					while (nextBtn.length > 0) {
 						logger.debug("Clicking next button...");
@@ -75,11 +90,11 @@ class FacebookStory {
 							audio: null,
 						});
 						storyCount++;
-						await sleep(50);
+						await sleep(10);
 						nextBtn = await page.$$('[aria-label="Next card"]');
 					}
+					await returnToFirstStory();
 				}
-
 				logger.debug(`Story count: ${storyCount}`);
 				logger.debug("Enabling request interception...");
 				let storyIdx = 0;
@@ -123,13 +138,22 @@ class FacebookStory {
 						logger.debug(`Bandwidth: ${currentBandwidth}`);
 						url.searchParams.delete("byteend");
 						// It will not be null
-						const efg = url.searchParams.get("efg") as string;
-						const isVideo = Buffer.from(efg, "base64")
-							.toString("utf-8")
-							.includes("video");
-						const isAudio = Buffer.from(efg, "base64")
-							.toString("utf-8")
-							.includes("audio");
+						const efg = Buffer.from(url.searchParams.get("efg") as string, "base64").toString("utf-8");
+						const isVideo = efg.includes("video") || efg.includes("vp9") || efg.includes("avc");
+						const isAudio = efg.includes("audio");
+						let width = 0;
+						let height = 0;
+						const efgJson = JSON.parse(efg);
+						if (efgJson.vencode_tag.endsWith("p")) {
+							// In mobile we do 720x1280 instead of 1280x720 most of the time.
+							// The format is {"vencode_tag":"dash_vp9-basic-gen2_720p"}
+							try {
+								width = parseInt(((efgJson.vencode_tag.split("_") as string[]).pop() as string).split("p")[0]);
+								height = width / 9 * 16;
+							} catch (e) {
+								logger.error(`Failed to parse width and height: ${e}`);
+							}
+						}
 						logger.debug(`EFG: ${efg}`);
 						logger.debug(`Is video: ${isVideo}`);
 						logger.debug(`Is audio: ${isAudio}`);
@@ -137,7 +161,7 @@ class FacebookStory {
 						if (!findValue(stories, urlStr)) {
 							if (isVideo) {
 								stories[storyIdx].videos.push(
-									new RemoteVideo(urlStr, 0, 0, 0, false),
+									new RemoteVideo(urlStr, width, height, 0, false),
 								);
 							} else if (isAudio) {
 								stories[storyIdx].audio = urlStr;
@@ -150,14 +174,14 @@ class FacebookStory {
 				await page.reload();
 				await viewStory();
 
-				await sleep(500);
+				await sleep(750);
 				let nextBtn = await page.$$('[aria-label="Next card"]');
 				while (nextBtn.length > 0) {
 					logger.debug("Clicking next button...");
 					await page.bringToFront();
 					storyIdx++;
 					await nextBtn[0].click();
-					await sleep(500);
+					await sleep(750);
 					nextBtn = await page.$$('[aria-label="Next card"]');
 				}
 				// Cleanup
@@ -167,25 +191,83 @@ class FacebookStory {
 				if (storyCount > 1) {
 					// Will re-enable this code when I'm smarter.
 					// For now just remove all of the vids :)
-					stories[0].videos.splice(0, storyCount);
-					// logger.debug("Reordering videos...");
-					// for (let i = 1; i < storyCount; i++) {
-					// 	logger.debug("Array before: %o", stories[0].videos);
-					// 	const element = stories[0].videos.splice(1, 1)[0];
-					// 	logger.debug("Array after: %o", stories[0].videos);
-					// 	stories[i].videos.unshift(element);
-					// }
+					// stories[0].videos.splice(0, storyCount);
+					// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+					const resolutions: any = {};
+					const story0Videos = structuredClone(stories[0].videos);
+					for (const video of stories[0].videos) {
+						if (!resolutions[video.width]) {
+							resolutions[video.width] = [];
+						}
+						const filteredVideo = story0Videos.splice(0, 1)[0];
+						resolutions[video.width].push(filteredVideo);
+					}
+					stories[0].videos = [];
+					logger.debug("Story [0] videos: %o", stories[0].videos);
+					let maxStory = storyCount;
+					let count = 0;
+					for (const [storyIdx, story] of stories.entries()) {
+						if (story.videos.length > 0) {
+							count++;
+						}
+						if (story.audio) {
+							count++;
+						}
+						if (count === 8) {
+							maxStory = storyIdx;
+							break;
+						}
+					}
+					logger.debug("Resolutions: %o", resolutions);
+					logger.debug(`Max story: ${maxStory}`);
+					logger.debug("Reordering videos...");
+					try {
+						for (const [_, res] of Object.entries(resolutions)) {
+							// Resolution is an array of video
+							// Watafak TypeShit
+							// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+							const resolution: RemoteVideo[] = res as any;
+							if (resolution == null) {
+								continue;
+							}
+							logger.debug("Resolution: %o", resolution);
+							if (resolution.length > 1) {
+								for (const [i, story] of stories.entries()) {
+									if (i === 0) {
+										continue;
+									}
+									if (story.videos.length > 0) {
+										logger.debug("Array before: %o", resolution);
+										const element = resolution.splice(1, 1)[0];
+										story.videos.unshift(element);
+										logger.debug("Array after: %o", resolution);
+										if (resolution.length === 1) {
+											break;
+										}
+									}
+								}
+							}
+							logger.debug("Resolution (after): %o", resolution);
+							stories[0].videos.unshift(...resolution);
+						}
+					} catch (e) {
+						logger.error(`Failed to reorder videos: ${e}`);
+					}
 				}
 				for (const story of stories) {
 					for (const video of story.videos) {
-						const bandwidth = getBandwidth(
-							(video.url.split("/").pop() as string)
-								.split("?")
-								.shift() as string,
-						) as number;
-						// logger.debug(bandwidth);
-						video.bandwidth = bandwidth;
-						logger.debug(`Bandwidth: ${video.bandwidth}`);
+						try {
+							const bandwidth = getBandwidth(
+								(video.url.split("/").pop() as string)
+									.split("?")
+									.shift() as string,
+							) as number;
+							// logger.debug(bandwidth);
+							video.bandwidth = bandwidth;
+							logger.debug(`Bandwidth: ${video.bandwidth}`);
+						} catch (e) {
+							logger.error(`Failed to get bandwidth: ${e}`);
+						}
 					}
 				}
 				// Finally return
