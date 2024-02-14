@@ -29,6 +29,36 @@ function getValue(input: object, key: string): unknown {
 	return null;
 }
 
+function getValueAll(input: object, key: string): unknown[] {
+	const retVal: unknown[] = [];
+	if (Array.isArray(input)) {
+		for (const x of input) {
+			if (typeof x === "object" && x != null) {
+				const result = getValueAll(x, key);
+				if (result.length > 0) {
+					retVal.push(...result);
+				}
+			}
+		}
+	} else {
+		for (const [currentKey, value] of Object.entries(input)) {
+			if (currentKey === key) {
+				retVal.push(value);
+			}
+			if (
+				Array.isArray(value) ||
+				(typeof value === "object" && value != null)
+			) {
+				const result = getValueAll(value, key);
+				if (result.length > 0) {
+					retVal.push(...result);
+				}
+			}
+		}
+	}
+	return retVal;
+}
+
 function findValue(input: object, value: string): boolean {
 	if (Array.isArray(input)) {
 		for (const x of input) {
@@ -59,4 +89,4 @@ function findValue(input: object, value: string): boolean {
 	return false;
 }
 
-export { sleep, getValue, findValue };
+export { sleep, getValue, getValueAll, findValue };

@@ -1,7 +1,7 @@
 import { JSDOM } from "jsdom";
 import puppeteer from "puppeteer";
 import logger from "../logger.js";
-import { findValue, getValue, sleep } from "../utils.js";
+import { findValue, getValue, getValueAll, sleep } from "../utils.js";
 import { RemoteVideo } from "./classes.js";
 
 class FacebookStory {
@@ -13,9 +13,10 @@ class FacebookStory {
 	 * better results such as video with audio URLs and also the video resolution. But it
 	 * may break in the future if Facebook changes their JSON structure.
 	 *
-	 * 2. `intercept` - Request interception: This method is slower and less reliable as
-	 * it can only produce video without audio URLs (along with the audio URL). This method
-	 * is more reliable as it doesn't rely on parsing the HTML structure.
+	 * 2. `intercept` - Request interception: This method is slower but more reliable because
+	 * it doesn't depend on the JSON structure entirely (it still does slightly for extra 
+	 * information such as video resolution). But beware that results may not be as good as
+	 * the `html` method.
 	 *
 	 * @param page
 	 * @param url
@@ -30,6 +31,7 @@ class FacebookStory {
 			case "html": {
 				await page.goto(url);
 				const source = await page.content();
+				await page.close();
 				return this.getVideosAndAudioUrlsFromHTML(source, url);
 			}
 			case "intercept": {
@@ -161,7 +163,7 @@ class FacebookStory {
 						if (!findValue(stories, urlStr)) {
 							if (isVideo) {
 								stories[storyIdx].videos.push(
-									new RemoteVideo(urlStr, width, height, 0, false),
+									new RemoteVideo(urlStr, width, height, 0, false, null),
 								);
 							} else if (isAudio) {
 								stories[storyIdx].audio = urlStr;
@@ -291,7 +293,7 @@ class FacebookStory {
 					};
 					muted: RemoteVideo[];
 				};
-				audio: string;
+				audio: string | null;
 			},
 		] = [
 			{
@@ -302,23 +304,10 @@ class FacebookStory {
 					},
 					muted: [],
 				},
-				audio: "",
-			},
+				audio: null,
+			}
 		];
-		const videos: {
-			unified: {
-				browser_native_sd_url: string;
-				browser_native_hd_url: string;
-			};
-			muted: RemoteVideo[];
-		} = {
-			unified: {
-				browser_native_sd_url: "",
-				browser_native_hd_url: "",
-			},
-			muted: [],
-		};
-		let audio = "";
+		const thumbnails: string[] = [];
 		// const document = page.mainFrame.window.document;
 		const document = dom.window.document;
 		for (const script of document.querySelectorAll("script")) {
@@ -331,15 +320,34 @@ class FacebookStory {
 				const data = JSON.parse(script.innerHTML);
 				// Parse unified stories (videos with audio)
 				// biome-ignore lint/suspicious/noExplicitAny: <explanation>
-				const unifiedStories: any = getValue(data, "unified_stories");
-				if (unifiedStories) {
-					edgeForLoop: for (const edge of unifiedStories.edges) {
-						for (const attachment of edge.node.attachments) {
-							videos.unified = {
-								browser_native_sd_url: attachment.media.browser_native_sd_url,
-								browser_native_hd_url: attachment.media.browser_native_sd_url,
+				const attachmentsArr: any = getValueAll(data, "attachments");
+				if (attachmentsArr.length > 0) {
+					logger.debug(`Attachment length: ${attachmentsArr.length}`);
+					// fs.writeFileSync("a.json", script.innerHTML);
+					for (const [i, attachments] of attachmentsArr.entries()) {
+						logger.debug("Attachments: %o", attachments);
+						logger.debug(`Index: ${i}`);
+						if (!stories[i]) {
+							stories[i] = {
+								videos: {
+									unified: {
+										browser_native_sd_url: "",
+										browser_native_hd_url: "",
+									},
+									muted: [],
+								},
+								audio: null,
 							};
-							break edgeForLoop;
+						}
+						stories[i].videos.unified = {
+							browser_native_sd_url: attachments[0].media.browser_native_sd_url,
+							browser_native_hd_url: attachments[0].media.browser_native_hd_url,
+						};
+						// Parse thumbnails
+						try {
+							thumbnails[i] = attachments[0].media.preferred_thumbnail.image.url;
+						} catch (e) {
+							logger.warn(`Failed to parse thumbnail: ${e}`);
 						}
 					}
 				}
@@ -350,8 +358,20 @@ class FacebookStory {
 					"all_video_dash_prefetch_representations",
 				);
 				if (videoDashes) {
-					for (const value of videoDashes) {
-						for (const representation of value.representations) {
+					for (const [i, videoDash] of videoDashes.entries()) {
+						for (const representation of videoDash.representations) {
+							if (!stories[i]) {
+								stories[i] = {
+									videos: {
+										unified: {
+											browser_native_sd_url: "",
+											browser_native_hd_url: "",
+										},
+										muted: [],
+									},
+									audio: null,
+								};
+							}
 							if (representation.mime_type.includes("video")) {
 								const video = new RemoteVideo(
 									representation.base_url,
@@ -359,10 +379,11 @@ class FacebookStory {
 									representation.height,
 									representation.bandwidth,
 									false,
+									thumbnails[i] || null,
 								);
-								videos.muted.push(video);
+								stories[i].videos.muted.push(video);
 							} else {
-								audio = representation.base_url;
+								stories[i].audio = representation.base_url;
 							}
 						}
 					}
@@ -371,7 +392,7 @@ class FacebookStory {
 				logger.debug("Failed to parse script innerHTML: %s", e);
 			}
 		}
-		return { videos, audio };
+		return { stories };
 	}
 }
 
