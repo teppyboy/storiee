@@ -81,27 +81,41 @@ await sleep(1000);
 // Start the server
 logger.info("Starting server...");
 new Elysia()
+	.onError(({ code, error, set }) => {
+		switch (code) {
+			case "NOT_FOUND":
+				set.status = 404;
+				return {
+					error: error.name,
+					message: "The requested resource was not found.",
+				};
+			case "INTERNAL_SERVER_ERROR":
+				set.status = 500;
+				return {
+					error: error,
+					message: "Internal server error.",
+				};
+			default:
+				set.status = 500;
+				return {
+					error: error,
+					message: "Internal server error.",
+				};
+		}
+	})
 	.get("/", () => "Storiee server is running correctly.")
 	// API v1
 	.get(
 		"/api/v1/facebook/story/url",
 		async ({ set, query }) => {
-			try {
-				return {
-					message: "OK",
-					data: await facebook.story.getVideosAndAudioUrls(
-						await getPage(),
-						query.url,
-						query.method ? query.method : "html",
-					),
-				};
-			} catch (e) {
-				set.status = 500;
-				return {
-					error: "Internal server error",
-					message: e,
-				};
-			}
+			return {
+				message: "OK",
+				data: await facebook.story.getVideosAndAudioUrls(
+					await getPage(),
+					query.url,
+					query.method ? query.method : "html",
+				),
+			};
 		},
 		{
 			query: t.Object({
@@ -110,13 +124,6 @@ new Elysia()
 			}),
 		},
 	)
-	.onError(({ code }) => {
-		if (code === "NOT_FOUND")
-			return {
-				error: "Not found",
-				message: "The requested resource was not found.",
-			};
-	})
 	.listen(8080);
 
 // await browser.close();
