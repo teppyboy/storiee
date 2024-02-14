@@ -29,4 +29,34 @@ function getValue(input: object, key: string): unknown {
 	return null;
 }
 
-export { sleep, getValue };
+function findValue(input: object, value: string): boolean {
+	if (Array.isArray(input)) {
+		for (const x of input) {
+			if (typeof x === "object" && x != null) {
+				const result = findValue(x, value);
+				if (result) {
+					return result;
+				}
+			} else if (typeof x === "string") {
+				if (x === value) {
+					return true;
+				}
+			}
+		}
+	} else {
+		for (const [_, val] of Object.entries(input)) {
+			if (val === value) {
+				return true;
+			}
+			if (Array.isArray(val) || (typeof val === "object" && val != null)) {
+				const result = findValue(val, value);
+				if (result) {
+					return result;
+				}
+			}
+		}
+	}
+	return false;
+}
+
+export { sleep, getValue, findValue };

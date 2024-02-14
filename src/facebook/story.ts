@@ -1,88 +1,195 @@
-import logger from "../logger.js";
-import { getValue, sleep } from "../utils.js";
-import puppeteer from "puppeteer";
 import { JSDOM } from "jsdom";
+import puppeteer from "puppeteer";
+import logger from "../logger.js";
+import { findValue, getValue, sleep } from "../utils.js";
 import { RemoteVideo } from "./classes.js";
 
 class FacebookStory {
 	/**
 	 * Gets the video and audio URLs from a Facebook story.
 	 *
-     * There are two methods to get the video and audio URLs:
-     * 1. `html` - HTML parsing: This method is faster and more reliable as it can produce
-     * better results such as video with audio URLs and also the video resolution. But it 
-     * may break in the future if Facebook changes their JSON structure.
+	 * There are two methods to get the video and audio URLs:
+	 * 1. `html` - HTML parsing: This method is faster and more reliable as it can produce
+	 * better results such as video with audio URLs and also the video resolution. But it
+	 * may break in the future if Facebook changes their JSON structure.
 	 *
-     * 2. `interception` - Request interception: This method is slower and less reliable as
-     * it can only produce video without audio URLs (along with the audio URL). This method
-     * is more reliable as it doesn't rely on parsing the HTML structure.
-     * 
+	 * 2. `intercept` - Request interception: This method is slower and less reliable as
+	 * it can only produce video without audio URLs (along with the audio URL). This method
+	 * is more reliable as it doesn't rely on parsing the HTML structure.
+	 *
 	 * @param page
-	 * @param cookie
 	 * @param url
 	 * @returns
 	 */
 	async getVideosAndAudioUrls(
 		page: puppeteer.Page,
-		cookie: string,
 		url: string,
 		method = "html",
 	) {
-		await page.setCookie(...(cookie as unknown as puppeteer.CookieParam[]));
 		switch (method) {
 			case "html": {
 				await page.goto(url);
 				const source = await page.content();
 				return this.getVideosAndAudioUrlsFromHTML(source, url);
 			}
-			case "interception": {
+			case "intercept": {
+				// Variables
+				let storyCount = 1;
+				const stories: [
+					{
+						videos: RemoteVideo[];
+						audio: string | null;
+					},
+				] = [
+					{
+						videos: [],
+						audio: null,
+					},
+				];
+
+				async function viewStory() {
+					for (const span of await page.$$("span")) {
+						const innerHTML = await page.evaluate((el) => el.innerHTML, span);
+						// logger.debug("Span innerHTML: %s", innerHTML);
+						if (innerHTML.includes("Click to view story")) {
+							logger.debug("Clicking to view story...");
+							// Detect how many stories we have first.
+							// Assuming we have 2 stories then there'll be 4 URLs (2 videos, 2 audio).
+							await span.evaluate((el) => el.parentElement?.click());
+							break;
+						}
+					}
+				}
+
+				await page.goto(url);
+				await viewStory();
+				// Avoid conflict variable name
+				{
+					let nextBtn = await page.$$('[aria-label="Next card"]');
+					while (nextBtn.length > 0) {
+						logger.debug("Clicking next button...");
+						await page.bringToFront();
+						await nextBtn[0].click();
+						stories.push({
+							videos: [],
+							audio: null,
+						});
+						storyCount++;
+						await sleep(50);
+						nextBtn = await page.$$('[aria-label="Next card"]');
+					}
+				}
+
+				logger.debug(`Story count: ${storyCount}`);
+				logger.debug("Enabling request interception...");
+				let storyIdx = 0;
+				// Fix TypeScript being annoying
+				const storyBandwidths = {
+					data: "",
+				};
+				// Goddamn debug
+				function getBandwidth(fileName: string): number | undefined {
+					// logger.debug(`File name: ${fileName}`);
+					for (const line of storyBandwidths.data.split(";")) {
+						// logger.debug(`Line: ${line}`);
+						const [key, value] = line.split("=", 2);
+						// logger.debug(`Key: ${key}`);
+						// logger.debug(`Value: ${value}`);
+						if (key === fileName) {
+							return parseInt(value);
+						}
+					}
+				}
 				await page.setRequestInterception(true);
-				let uniqueUrlCount = 0;
-				let videos: string[] = [];
-				let audio = "";
 				page.on("request", (interceptedRequest) => {
 					const url = new URL(interceptedRequest.url());
 					// logger.debug("Intercepting request: %s", interceptedRequest.url());
 					if (url.pathname.endsWith(".mp4")) {
-						// logger.debug("'Video' request intercepted: %s", url);
-						// logger.debug("Removing 'bytestart' and 'byteend' query parameters...");
 						url.searchParams.delete("bytestart");
+						const fileName = url.pathname.split("/").pop() as string;
+						const byteEnd = parseInt(url.searchParams.get("byteend") as string);
+						logger.debug(`Byte end: ${byteEnd}`);
+						const currentBandwidth = getBandwidth(fileName);
+						if (!currentBandwidth) {
+							storyBandwidths.data += `${fileName}=${byteEnd};`;
+						} else {
+							if (byteEnd > currentBandwidth) {
+								storyBandwidths.data = storyBandwidths.data.replace(
+									`${fileName}=${currentBandwidth};`,
+									`${fileName}=${byteEnd};`,
+								);
+							}
+						}
+						logger.debug(`Bandwidth: ${currentBandwidth}`);
 						url.searchParams.delete("byteend");
+						// It will not be null
+						const efg = url.searchParams.get("efg") as string;
+						const isVideo = Buffer.from(efg, "base64")
+							.toString("utf-8")
+							.includes("video");
+						const isAudio = Buffer.from(efg, "base64")
+							.toString("utf-8")
+							.includes("audio");
+						logger.debug(`EFG: ${efg}`);
+						logger.debug(`Is video: ${isVideo}`);
+						logger.debug(`Is audio: ${isAudio}`);
 						const urlStr = url.toString();
-						if (!videos.includes(urlStr) && !audio.includes(urlStr)) {
-							uniqueUrlCount++;
+						if (!findValue(stories, urlStr)) {
+							if (isVideo) {
+								stories[storyIdx].videos.push(
+									new RemoteVideo(urlStr, 0, 0, 0, false),
+								);
+							} else if (isAudio) {
+								stories[storyIdx].audio = urlStr;
+							}
 						}
-						if (videos.length < 3 || (audio !== "" && audio !== urlStr)) {
-							videos.push(urlStr);
-						} else if (!audio) {
-							audio = urlStr;
-						}
-						// logger.debug("Unique URL count: %d", uniqueUrlCount);
 					}
 					interceptedRequest.continue();
 				});
-				await page.goto(url);
-				for (const span of await page.$$("span")) {
-					const innerHTML = await page.evaluate((el) => el.innerHTML, span);
-					// logger.debug("Span innerHTML: %s", innerHTML);
-					if (innerHTML.includes("Click to view story")) {
-						logger.debug("Clicking to view story...");
-						await span.evaluate((el) => el.parentElement?.click());
-						break;
+
+				await page.reload();
+				await viewStory();
+
+				await sleep(500);
+				let nextBtn = await page.$$('[aria-label="Next card"]');
+				while (nextBtn.length > 0) {
+					logger.debug("Clicking next button...");
+					await page.bringToFront();
+					storyIdx++;
+					await nextBtn[0].click();
+					await sleep(500);
+					nextBtn = await page.$$('[aria-label="Next card"]');
+				}
+				// Cleanup
+				await page.close();
+
+				// Fix variables
+				if (storyCount > 1) {
+					// Will re-enable this code when I'm smarter.
+					// For now just remove all of the vids :)
+					stories[0].videos.splice(0, storyCount);
+					// logger.debug("Reordering videos...");
+					// for (let i = 1; i < storyCount; i++) {
+					// 	logger.debug("Array before: %o", stories[0].videos);
+					// 	const element = stories[0].videos.splice(1, 1)[0];
+					// 	logger.debug("Array after: %o", stories[0].videos);
+					// 	stories[i].videos.unshift(element);
+					// }
+				}
+				for (const story of stories) {
+					for (const video of story.videos) {
+						const bandwidth = getBandwidth(
+							(video.url.split("/").pop() as string)
+								.split("?")
+								.shift() as string,
+						) as number;
+						// logger.debug(bandwidth);
+						video.bandwidth = bandwidth;
+						logger.debug(`Bandwidth: ${video.bandwidth}`);
 					}
 				}
-				const timeout = setTimeout(() => {
-					page.close();
-					throw new Error("Timeout: Failed to get video and audio URLs.");
-				}, 15000);
-				while (uniqueUrlCount < 5) {
-					logger.debug("Unique URL count: %d", uniqueUrlCount);
-					await sleep(100);
-				}
-				videos = [...new Set(videos)];
-				clearTimeout(timeout);
-				page.close();
-				return { videos, audio };
+				// Finally return
+				return { stories };
 			}
 			default:
 				throw new Error("Invalid method.");
@@ -93,6 +200,29 @@ class FacebookStory {
 			url: url,
 			runScripts: "dangerously",
 		});
+		const stories: [
+			{
+				videos: {
+					unified: {
+						browser_native_sd_url: string;
+						browser_native_hd_url: string;
+					};
+					muted: RemoteVideo[];
+				};
+				audio: string;
+			},
+		] = [
+			{
+				videos: {
+					unified: {
+						browser_native_sd_url: "",
+						browser_native_hd_url: "",
+					},
+					muted: [],
+				},
+				audio: "",
+			},
+		];
 		const videos: {
 			unified: {
 				browser_native_sd_url: string;
@@ -145,6 +275,8 @@ class FacebookStory {
 									representation.base_url,
 									representation.width,
 									representation.height,
+									representation.bandwidth,
+									false,
 								);
 								videos.muted.push(video);
 							} else {
