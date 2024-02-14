@@ -1,6 +1,6 @@
 import * as fs from "node:fs";
-import logger from "../logger.js";
 import puppeteer from "puppeteer";
+import logger from "../logger.js";
 import FacebookStory from "./story.js";
 
 class Facebook {
