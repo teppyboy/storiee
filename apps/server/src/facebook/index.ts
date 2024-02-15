@@ -6,10 +6,41 @@ import FacebookStory from "./story.js";
 class Facebook {
 	cookies: string[];
 	story: FacebookStory;
-	constructor() {
+	#browser: puppeteer.Browser | undefined;
+	#pageCreationInterval: NodeJS.Timeout | undefined;
+	#pages: puppeteer.Page[] = [];
+	constructor(browser: puppeteer.Browser | undefined = undefined) {
 		this.cookies = [];
-		this.story = new FacebookStory();
+		this.story = new FacebookStory(this);
+		this.#browser = browser;
+		if (this.#browser) {
+			logger.debug("Creating setInterval to create new pages...");
+			this.#enableAutoPageCreation();
+		}
 		fs.mkdirSync("data/cookies/fb/", { recursive: true });
+	}
+	#enableAutoPageCreation() {
+		if (this.#pageCreationInterval) {
+			clearInterval(this.#pageCreationInterval);
+			this.#pages = [];
+		}
+		this.#pageCreationInterval = setInterval(async () => {
+			// Hardcoding to 4 for now
+			if (this.#pages.length < 4) {
+				logger.debug(
+					`Creating new page. Current page count: ${this.#pages.length}`,
+				);
+				if (!this.#browser) {
+					return;
+				}
+				const page = await this.#browser.newPage();
+				this.#pages.push(page);
+			}
+		}, 100);
+	}
+	setBrowser(browser: puppeteer.Browser) {
+		this.#browser = browser;
+		this.#enableAutoPageCreation();
 	}
 	loadCookies() {
 		for (const file of fs.readdirSync("data/cookies/fb/")) {
@@ -23,6 +54,21 @@ class Facebook {
 		const cookie =
 			this.cookies[Math.floor(Math.random() * this.cookies.length)];
 		return cookie;
+	}
+	async getPage() {
+		let page: puppeteer.Page;
+		const maybePage = this.#pages.shift();
+		if (!maybePage) {
+			if (!this.#browser) {
+				throw new Error("Browser is not initialized.");
+			}
+			page = await this.#browser.newPage();
+		} else {
+			page = maybePage;
+		}
+		const cookie = this.getRandomCookie();
+		await page.setCookie(...(cookie as unknown as puppeteer.CookieParam[]));
+		return page;
 	}
 	async addAccount() {
 		logger.info("Adding account...");

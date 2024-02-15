@@ -3,8 +3,13 @@ import puppeteer from "puppeteer";
 import logger from "../logger.js";
 import { findValue, getValue, getValueAll, sleep } from "../utils.js";
 import { RemoteVideo } from "./classes.js";
+import Facebook from "./index.js";
 
 class FacebookStory {
+	#facebook: Facebook;
+	constructor(facebook: Facebook) {
+		this.#facebook = facebook;
+	}
 	/**
 	 * Gets the video and audio URLs from a Facebook story.
 	 *
@@ -14,19 +19,17 @@ class FacebookStory {
 	 * may break in the future if Facebook changes their JSON structure.
 	 *
 	 * 2. `intercept` - Request interception: This method is slower but more reliable because
-	 * it doesn't depend on the JSON structure entirely (it still does slightly for extra 
+	 * it doesn't depend on the JSON structure entirely (it still does slightly for extra
 	 * information such as video resolution). But beware that results may not be as good as
 	 * the `html` method.
 	 *
 	 * @param page
 	 * @param url
+	 * @param method
 	 * @returns
 	 */
-	async getVideosAndAudioUrls(
-		page: puppeteer.Page,
-		url: string,
-		method = "html",
-	) {
+	async getVideosAndAudioUrls(url: string, method = "html") {
+		const page = await this.#facebook.getPage();
 		switch (method) {
 			case "html": {
 				await page.goto(url);
@@ -69,11 +72,11 @@ class FacebookStory {
 				async function returnToFirstStory() {
 					let prevBtn = await page.$$('[aria-label="Previous card"]');
 					while (prevBtn.length > 0) {
-						logger.debug("Clicking previous button..."); 
+						logger.debug("Clicking previous button...");
 						try {
 							await page.bringToFront();
 							await prevBtn[0].click();
-							await sleep(10);	
+							await sleep(10);
 						} catch (e) {
 							logger.error(`Failed to click previous button: ${e}`);
 						}
@@ -140,8 +143,14 @@ class FacebookStory {
 						logger.debug(`Bandwidth: ${currentBandwidth}`);
 						url.searchParams.delete("byteend");
 						// It will not be null
-						const efg = Buffer.from(url.searchParams.get("efg") as string, "base64").toString("utf-8");
-						const isVideo = efg.includes("video") || efg.includes("vp9") || efg.includes("avc");
+						const efg = Buffer.from(
+							url.searchParams.get("efg") as string,
+							"base64",
+						).toString("utf-8");
+						const isVideo =
+							efg.includes("video") ||
+							efg.includes("vp9") ||
+							efg.includes("avc");
 						const isAudio = efg.includes("audio");
 						let width = 0;
 						let height = 0;
@@ -150,8 +159,12 @@ class FacebookStory {
 							// In mobile we do 720x1280 instead of 1280x720 most of the time.
 							// The format is {"vencode_tag":"dash_vp9-basic-gen2_720p"}
 							try {
-								width = parseInt(((efgJson.vencode_tag.split("_") as string[]).pop() as string).split("p")[0]);
-								height = width / 9 * 16;
+								width = parseInt(
+									(
+										(efgJson.vencode_tag.split("_") as string[]).pop() as string
+									).split("p")[0],
+								);
+								height = (width / 9) * 16;
 							} catch (e) {
 								logger.error(`Failed to parse width and height: ${e}`);
 							}
@@ -305,7 +318,7 @@ class FacebookStory {
 					muted: [],
 				},
 				audio: null,
-			}
+			},
 		];
 		const thumbnails: string[] = [];
 		// const document = page.mainFrame.window.document;
@@ -345,7 +358,8 @@ class FacebookStory {
 						};
 						// Parse thumbnails
 						try {
-							thumbnails[i] = attachments[0].media.preferred_thumbnail.image.url;
+							thumbnails[i] =
+								attachments[0].media.preferred_thumbnail.image.url;
 						} catch (e) {
 							logger.warn(`Failed to parse thumbnail: ${e}`);
 						}
@@ -401,6 +415,10 @@ class FacebookStory {
 				}
 			}
 			story.videos.muted = newMutedVideos;
+		}
+		// Remove first story if it's empty
+		if (stories[0].videos.unified.browser_native_sd_url === "") {
+			stories.shift();
 		}
 		return { stories };
 	}

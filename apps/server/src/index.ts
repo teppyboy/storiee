@@ -1,12 +1,12 @@
 import * as fs from "node:fs";
 import "@bogeychan/elysia-polyfills/node/index.js";
-import { Elysia, t } from "elysia";
+import { Elysia } from "elysia";
 import puppeteer from "puppeteer";
 import * as constants from "./constants.js";
 import Facebook from "./facebook/index.js";
 import logger from "./logger.js";
+import apiV1 from "./routes/v1/index.js";
 import { sleep } from "./utils.js";
-import { Parameters } from "@sinclair/typebox";
 
 console.log(`Storiee Server - v${constants.VERSION}`);
 const facebook = new Facebook();
@@ -43,7 +43,6 @@ if (facebook.cookies.length > 0) {
 	process.exit(1);
 }
 
-const pages: puppeteer.Page[] = [];
 logger.info("Initializing browser...");
 // Launch the browser and open a new blank page
 const browser = await puppeteer.launch({
@@ -54,79 +53,22 @@ const browser = await puppeteer.launch({
 		deviceScaleFactor: 1,
 	},
 });
-logger.debug("Creating setInterval to create new pages...");
-setInterval(async () => {
-	// Hardcoding to 4 for now
-	if (pages.length < 4) {
-		logger.debug(`Creating new page. Current page count: ${pages.length}`);
-		const page = await browser.newPage();
-		pages.push(page);
-	}
-}, 100);
 
-async function getPage() {
-	let page: puppeteer.Page;
-	const maybePage = pages.shift();
-	if (!maybePage) {
-		page = await browser.newPage();
-	} else {
-		page = maybePage;
-	}
-	const cookie = facebook.getRandomCookie();
-	await page.setCookie(...(cookie as unknown as puppeteer.CookieParam[]));
-	return page;
-}
+facebook.setBrowser(browser);
+
 // Let the browser start up
 await sleep(1000);
 
-// Start the server
 logger.info("Starting server...");
-new Elysia()
-	.onError(({ code, error, set }) => {
-		switch (code) {
-			case "NOT_FOUND":
-				set.status = 404;
-				return {
-					error: error.name,
-					message: "The requested resource was not found.",
-				};
-			case "VALIDATION":
-				set.status = 400;
-				return {
-					error: "Bad request",
-					message: error.message,
-				};
-			default:
-				set.status = 500;
-				return {
-					error: "Internal server error.",
-					message: error.message,
-				};
-		}
-	})
-	.get("/", () => "Storiee server is running correctly.")
-	// API v1
-	.get(
-		"/api/v1/facebook/story/url/:url",
-		async ({ set, query, params: url }) => {
-			return {
-				message: "OK",
-				data: await facebook.story.getVideosAndAudioUrls(
-					await getPage(),
-					decodeURIComponent(url.url),
-					query.method,
-				),
-			};
-		},
-		{
-			query: t.Object({
-				method: t.Optional(t.String({
-					enum: ["html", "intercept"],
-					error: "Invalid method. Must be 'html' or 'intercept'"
-				})),
-			}),
-		},
-	)
-	.listen(8080);
-
-// await browser.close();
+const app = new Elysia().use(apiV1);
+app.listen(
+	{
+		port: 8080,
+		host: "0.0.0.0",
+	},
+	(data) => {
+		logger.info(`Server started on http://${data.hostname}:${data.port}`);
+	},
+);
+// For our server.
+export { facebook };
