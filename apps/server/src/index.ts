@@ -6,6 +6,7 @@ import * as constants from "./constants.js";
 import Facebook from "./facebook/index.js";
 import logger from "./logger.js";
 import { sleep } from "./utils.js";
+import { Parameters } from "@sinclair/typebox";
 
 console.log(`Storiee Server - v${constants.VERSION}`);
 const facebook = new Facebook();
@@ -89,38 +90,40 @@ new Elysia()
 					error: error.name,
 					message: "The requested resource was not found.",
 				};
-			case "INTERNAL_SERVER_ERROR":
-				set.status = 500;
+			case "VALIDATION":
+				set.status = 400;
 				return {
-					error: error,
-					message: "Internal server error.",
+					error: "Bad request",
+					message: error.message,
 				};
 			default:
 				set.status = 500;
 				return {
-					error: error,
-					message: "Internal server error.",
+					error: "Internal server error.",
+					message: error.message,
 				};
 		}
 	})
 	.get("/", () => "Storiee server is running correctly.")
 	// API v1
 	.get(
-		"/api/v1/facebook/story/url",
-		async ({ set, query }) => {
+		"/api/v1/facebook/story/url/:url",
+		async ({ set, query, params: url }) => {
 			return {
 				message: "OK",
 				data: await facebook.story.getVideosAndAudioUrls(
 					await getPage(),
-					query.url,
-					query.method ? query.method : "html",
+					decodeURIComponent(url.url),
+					query.method,
 				),
 			};
 		},
 		{
 			query: t.Object({
-				url: t.String(),
-				method: t.Optional(t.String()),
+				method: t.Optional(t.String({
+					enum: ["html", "intercept"],
+					error: "Invalid method. Must be 'html' or 'intercept'"
+				})),
 			}),
 		},
 	)

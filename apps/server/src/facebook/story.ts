@@ -392,6 +392,16 @@ class FacebookStory {
 				logger.debug("Failed to parse script innerHTML: %s", e);
 			}
 		}
+		// Deduplicate
+		for (const story of stories) {
+			const newMutedVideos = [];
+			for (const video of story.videos.muted) {
+				if (!findValue(newMutedVideos, video.url)) {
+					newMutedVideos.push(video);
+				}
+			}
+			story.videos.muted = newMutedVideos;
+		}
 		return { stories };
 	}
 }
