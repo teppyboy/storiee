@@ -1,7 +1,7 @@
 import { Elysia } from "elysia";
 import { facebook } from "./facebook.js";
 
-const apiV1 = new Elysia({ prefix: "/api/v1" }).use(facebook);
+const v1 = new Elysia({ prefix: "/v1" }).use(facebook);
 
-export default apiV1;
-export type APIv1 = typeof apiV1;
+export default v1;
+export type V1 = typeof v1;

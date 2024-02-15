@@ -5,8 +5,8 @@ import puppeteer from "puppeteer";
 import * as constants from "./constants.js";
 import Facebook from "./facebook/index.js";
 import logger from "./logger.js";
-import apiV1 from "./routes/v1/index.js";
 import { sleep } from "./utils.js";
+import api from "./routes/index.js";
 
 console.log(`Storiee Server - v${constants.VERSION}`);
 const facebook = new Facebook();
@@ -60,7 +60,7 @@ facebook.setBrowser(browser);
 await sleep(1000);
 
 logger.info("Starting server...");
-const app = new Elysia().use(apiV1);
+const app = new Elysia().use(api);
 app.listen(
 	{
 		port: 8080,
@@ -70,5 +70,8 @@ app.listen(
 		logger.info(`Server started on http://${data.hostname}:${data.port}`);
 	},
 );
+
 // For our server.
 export { facebook };
+
+export type App = typeof app;

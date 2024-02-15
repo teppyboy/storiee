@@ -2,7 +2,8 @@
   "name": "storiee-server",
   "version": "1.0.0",
   "description": "Storiee server",
-  "main": "index.js",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
   "type": "module",
   "scripts": {
     "build": "swc src --out-dir dist",
