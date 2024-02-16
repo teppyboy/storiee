@@ -30,12 +30,18 @@ class FacebookStory {
 	 */
 	async getVideosAndAudioUrls(url: string, method = "html") {
 		const page = await this.#facebook.getPage();
+		logger.debug("Story URL: %s", url);
+		let storyUrl = url;
+		if (storyUrl.startsWith("https:%2F%2Fwww.facebook.com")) {
+			// The url is still encoded somehow.
+			storyUrl = decodeURIComponent(url);
+		}
 		switch (method) {
 			case "html": {
-				await page.goto(url);
+				await page.goto(storyUrl);
 				const source = await page.content();
 				await page.close();
-				return this.getVideosAndAudioUrlsFromHTML(source, url);
+				return this.getVideosAndAudioUrlsFromHTML(source, storyUrl);
 			}
 			case "intercept": {
 				// Variables
@@ -66,7 +72,7 @@ class FacebookStory {
 					}
 				}
 
-				await page.goto(url);
+				await page.goto(storyUrl);
 				await viewStory();
 				// Avoid conflict variable name
 				async function returnToFirstStory() {
@@ -267,6 +273,10 @@ class FacebookStory {
 						}
 					} catch (e) {
 						logger.error(`Failed to reorder videos: ${e}`);
+					}
+					// Remove empty last story.
+					if (stories[stories.length - 1].videos.length === 0 && stories[stories.length - 1].audio === null) {
+						stories.pop();
 					}
 				}
 				for (const story of stories) {

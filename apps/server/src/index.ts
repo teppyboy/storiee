@@ -1,12 +1,13 @@
 import * as fs from "node:fs";
 import "@bogeychan/elysia-polyfills/node/index.js";
 import { Elysia } from "elysia";
+import { cors } from '@elysiajs/cors'
 import puppeteer from "puppeteer";
 import * as constants from "./constants.js";
 import Facebook from "./facebook/index.js";
 import logger from "./logger.js";
-import { sleep } from "./utils.js";
 import api from "./routes/index.js";
+import { sleep } from "./utils.js";
 
 console.log(`Storiee Server - v${constants.VERSION}`);
 const facebook = new Facebook();
@@ -60,7 +61,7 @@ facebook.setBrowser(browser);
 await sleep(1000);
 
 logger.info("Starting server...");
-const app = new Elysia().use(api);
+const app = new Elysia().use(cors()).use(api);
 app.listen(
 	{
 		port: 8080,

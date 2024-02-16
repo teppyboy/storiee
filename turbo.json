@@ -11,6 +11,9 @@
     "fmt": {
       "cache": false
     },
+    "start": {
+      "cache": true
+    },
     "dev": {
       "cache": false
     }

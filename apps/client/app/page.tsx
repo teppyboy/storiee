@@ -1,71 +1,50 @@
-import { api } from 'libs';
-import StoryDownloadForm from './form';
-import {
-	Accordion,
-	AccordionContent,
-	AccordionItem,
-	AccordionTrigger,
-} from "@/components/ui/accordion";
-import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardFooter,
-	CardHeader,
-	CardTitle,
-} from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-} from "@/components/ui/select";
+"use client";
+import { useToast } from "@/components/ui/use-toast";
+import { useRef, useState } from "react";
+import StoryDownloadForm from "./client/form";
+import FAQ from "./faq";
+import StoryDownloadResult from "./client/result";
 
-import { Button } from "@/components/ui/button";
-import { ChangeEvent, useId } from 'react';
-
-const ServerComponent = (searchParams) => { 
-	const something = searchParams.something
-	console.log(something) //You get your user data here
-	return (
-		<div />
-	)
-}
-
-export default async function Home() {
+export default function Home() {
+	const [results, setResults] = useState([]);
+	const resultsRef = useRef([]);
+	resultsRef.current = results;
+	// UI
+	const { toast } = useToast();
+	const mapping = {};
+	function removeResult(index: number) {
+		const resultsCopy = resultsRef.current.slice();
+		console.log(resultsCopy);
+		console.log(index);
+		for (let i = index; i < results.length - 1; i++) {
+			console.log("Moving", i + 1, "to", i);
+			resultsCopy[i] = results[i + 1];
+		}
+		resultsCopy.pop();
+		setResults(resultsCopy);
+		resultsRef.current = results;
+	}
+	function handleDownload(storyUrl: string, downloadMethod: string) {
+		const key = Math.random().toString(36);
+		console.log("Downloading story", storyUrl, downloadMethod);
+		// const key = `${storyUrl}-${downloadMethod}`;
+		const result = (
+			<StoryDownloadResult key={key} storyUrl={storyUrl} method={downloadMethod} removeResult={() => removeResult(results.length)} />
+		);
+		const resultsCopy = results.slice();
+		// Suppress the warning about the never type
+		resultsCopy.unshift(result as unknown as never);
+		console.log(resultsCopy);
+		setResults(resultsCopy);
+	}
 	return (
 		<main className="flex flex-col items-center justify-between p-8">
 			<br />
 			<div>
-				<ServerComponent />
-				<StoryDownloadForm />
+				<StoryDownloadForm onDownloadClicked={handleDownload} />
 			</div>
-			<div className="my-4">
-				<h1 className="scroll-m-20 text-4xl font-extrabold tracking-tight lg:text-4xl">
-					FAQ
-				</h1>
-			</div>
-			<div className="flex">
-				<Accordion type="single" collapsible>
-					<AccordionItem value="item-1">
-						<AccordionTrigger>Is it safe?</AccordionTrigger>
-						<AccordionContent>
-							Yes, this project is open source and you can check the code on
-							GitHub.
-						</AccordionContent>
-					</AccordionItem>
-					<AccordionItem value="item-2">
-						<AccordionTrigger>How much data do we collect?</AccordionTrigger>
-						<AccordionContent>
-							For now, nothing. We don't store any data from you.
-						</AccordionContent>
-					</AccordionItem>
-				</Accordion>
-			</div>
+			{results}
+			<FAQ />
 		</main>
 	);
 }
