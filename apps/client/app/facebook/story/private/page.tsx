@@ -41,10 +41,7 @@ export default function Home() {
 		}
 		setResults(resultsCopy);
 	}
-	function handleDownload(
-		storyHtml: string,
-		acceptTos: boolean,
-	) {
+	function handleDownload(storyHtml: string, acceptTos: boolean) {
 		if (acceptTos === false) {
 			toast({
 				title: "Terms of Service",

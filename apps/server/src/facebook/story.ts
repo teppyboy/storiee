@@ -1,5 +1,4 @@
 import { JSDOM } from "jsdom";
-import puppeteer from "puppeteer";
 import logger from "../logger.js";
 import { findValue, getValue, getValueAll, sleep } from "../utils.js";
 import { RemoteVideo } from "./classes.js";
@@ -126,7 +125,6 @@ class FacebookStory {
 						}
 					}
 				}
-				await page.setRequestInterception(true);
 				page.on("request", (interceptedRequest) => {
 					const url = new URL(interceptedRequest.url());
 					// logger.debug("Intercepting request: %s", interceptedRequest.url());
@@ -189,7 +187,6 @@ class FacebookStory {
 							}
 						}
 					}
-					interceptedRequest.continue();
 				});
 
 				await page.reload();

@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea"
+import { Textarea } from "@/components/ui/textarea";
 import React, { ChangeEvent, useState } from "react";
 import { CheckedState } from "@radix-ui/react-checkbox";
 
@@ -46,7 +46,11 @@ export default function StoryDownloadForm({ onDownloadClicked }) {
 					<div className="grid w-full items-center gap-4">
 						<div className="flex flex-col space-y-1.5">
 							<Label htmlFor="url">HTML</Label>
-							<Textarea onChange={(e) => handleStoryUrlChange(e)} className="h-0.5" placeholder="Paste the content of the HTML page, you can access that page by pressing Ctrl + U on PC" />
+							<Textarea
+								onChange={(e) => handleStoryUrlChange(e)}
+								className="h-0.5"
+								placeholder="Paste the content of the HTML page, you can access that page by pressing Ctrl + U on PC"
+							/>
 						</div>
 						<div>
 							<div className="grid gap-1.5 leading-none">
