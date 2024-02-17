@@ -26,7 +26,11 @@ export default function Home() {
 		setResults(resultsCopy);
 		resultsRef.current = results;
 	}
-	function handleDownload(storyUrl: string, downloadMethod: string, acceptTos: boolean) {
+	function handleDownload(
+		storyUrl: string,
+		downloadMethod: string,
+		acceptTos: boolean,
+	) {
 		const urlParseResult = zUrl.safeParse(storyUrl);
 		if (urlParseResult.success === false) {
 			toast({
@@ -40,7 +44,8 @@ export default function Home() {
 		if (acceptTos === false) {
 			toast({
 				title: "Terms of Service",
-				description: "You must accept the terms of service to download stories.",
+				description:
+					"You must accept the terms of service to download stories.",
 				duration: 5000,
 				variant: "destructive",
 			});
@@ -50,7 +55,12 @@ export default function Home() {
 		console.log("Downloading story", storyUrl, downloadMethod);
 		// const key = `${storyUrl}-${downloadMethod}`;
 		const result = (
-			<StoryDownloadResult key={key} storyUrl={storyUrl} method={downloadMethod} removeResult={() => removeResult(results.length)} />
+			<StoryDownloadResult
+				key={key}
+				storyUrl={storyUrl}
+				method={downloadMethod}
+				removeResult={() => removeResult(results.length)}
+			/>
 		);
 		const resultsCopy = results.slice();
 		// Suppress the warning about the never type

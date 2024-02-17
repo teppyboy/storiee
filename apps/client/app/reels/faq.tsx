@@ -13,16 +13,22 @@ export default function FAQ() {
 			</h1>
 			<div className="flex">
 				<Accordion type="single" collapsible>
-                    <AccordionItem value="item-4">
-						<AccordionTrigger className="text-left">Why there isn't an "Audio only" button on the story I wanted to download?</AccordionTrigger>
+					<AccordionItem value="item-4">
+						<AccordionTrigger className="text-left">
+							Why there isn't an "Audio only" button on the story I wanted to
+							download?
+						</AccordionTrigger>
 						<AccordionContent>
-                            Because the story you wanted to download doesn't have any audio at all :moyai:
+							Because the story you wanted to download doesn't have any audio at
+							all :moyai:
 						</AccordionContent>
 					</AccordionItem>
-                    <AccordionItem value="item-5">
-						<AccordionTrigger className="text-left">Can it download stories with pictures only?</AccordionTrigger>
+					<AccordionItem value="item-5">
+						<AccordionTrigger className="text-left">
+							Can it download stories with pictures only?
+						</AccordionTrigger>
 						<AccordionContent>
-                            Currently it doesn't but I may implement it in the future.
+							Currently it doesn't but I may implement it in the future.
 						</AccordionContent>
 					</AccordionItem>
 					<AccordionItem value="item-1">

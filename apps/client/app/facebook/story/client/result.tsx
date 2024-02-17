@@ -14,7 +14,11 @@ import useSWR from "swr";
 // biome-ignore lint/suspicious/noExplicitAny: <explanation>
 const fetcher = (...args: any[]) => fetch(...args).then((res) => res.json());
 
-export default function StoryDownloadResult({ storyUrl, method, removeResult }) {
+export default function StoryDownloadResult({
+	storyUrl,
+	method,
+	removeResult,
+}) {
 	// Smartest way to handle the download :nerd:
 	console.log("Downloading story", storyUrl, method);
 	const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8080";
@@ -28,8 +32,15 @@ export default function StoryDownloadResult({ storyUrl, method, removeResult }) 
 		removeResult();
 	}
 	const removeResultButton = (
-		<div className="w-full flex justify-end m-0 p-0" id={Math.random().toString(36)}>
-			<Button variant="outline" className="text-1.5xl" onClick={handleRemoveResult}>
+		<div
+			className="w-full flex justify-end m-0 p-0"
+			id={Math.random().toString(36)}
+		>
+			<Button
+				variant="outline"
+				className="text-1.5xl"
+				onClick={handleRemoveResult}
+			>
 				X
 			</Button>
 		</div>
@@ -58,7 +69,8 @@ export default function StoryDownloadResult({ storyUrl, method, removeResult }) 
 					</CardHeader>
 					<CardContent className="text-opacity-80">
 						The process will take a few seconds, please wait.
-						<br /><br />
+						<br />
+						<br />
 						If you are using "Intercept" method then it'll take a bit longer.
 					</CardContent>
 				</Card>
@@ -90,19 +102,20 @@ export default function StoryDownloadResult({ storyUrl, method, removeResult }) 
 	if (storyData.stories.length === 0) {
 		return (
 			<div>
-			<Card className="w mt-4">
-				<CardHeader>
-					<div className="flex flex-row">
-						<CardTitle>Result</CardTitle>
-						{removeResultButton}
-					</div>
-				</CardHeader>
-				<CardContent>
-					Successfully fetch story information, but there isn't any video stories in the URL you provided.
-				</CardContent>
-			</Card>
-		</div>
-		)
+				<Card className="w mt-4">
+					<CardHeader>
+						<div className="flex flex-row">
+							<CardTitle>Result</CardTitle>
+							{removeResultButton}
+						</div>
+					</CardHeader>
+					<CardContent>
+						Successfully fetch story information, but there isn't any video
+						stories in the URL you provided.
+					</CardContent>
+				</Card>
+			</div>
+		);
 	}
 	const tabsTriggers = [];
 	const tabsContents = [];
@@ -235,8 +248,10 @@ export default function StoryDownloadResult({ storyUrl, method, removeResult }) 
 					Successfully fetch story information, click the story you want to
 					download.
 					<div className="text-balance">
-						<a href={storyUrl} target="_blank" rel="noreferrer">Click here to open the story in Facebook.</a>
-					</div>	
+						<a href={storyUrl} target="_blank" rel="noreferrer">
+							Click here to open the story in Facebook.
+						</a>
+					</div>
 				</CardDescription>
 			</CardHeader>
 			<CardContent>
