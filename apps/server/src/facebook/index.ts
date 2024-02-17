@@ -24,6 +24,7 @@ class Facebook {
 			clearInterval(this.#pageCreationInterval);
 			this.#pages = [];
 		}
+		let prevPageLen = -1;
 		this.#pageCreationInterval = setInterval(async () => {
 			// Hardcoding to 4 for now
 			if (this.#pages.length < 4) {
@@ -31,14 +32,18 @@ class Facebook {
 					clearInterval(this.#pageCreationInterval);
 					return;
 				}
-				logger.debug(
-					`Creating new page. Current page count: ${this.#pages.length}`,
-				);
 				if (this.contexts.length === 0) {
 					return;
 				}
+				logger.debug(
+					`Creating new page. Current page count: ${this.#pages.length}`,
+				);
 				const context =
 					this.contexts[Math.floor(Math.random() * this.contexts.length)];
+				if (prevPageLen === this.#pages.length) {
+					logger.debug("Previous page length is same as current.");
+					return;
+				}
 				const page = await context.newPage();
 				this.#pages.push(page);
 			}

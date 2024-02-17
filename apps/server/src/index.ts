@@ -28,11 +28,12 @@ for (const arg of process.argv) {
 }
 
 logger.info("Initializing components...");
-logger.info("Initializing browser...");
+const browserChannel = process.env.BROWSER_CHANNEL || "chrome";
+logger.info(`Initializing browser (channel: ${browserChannel})...`);
 // Launch the browser and open a new blank page
 const browser = await chromium.launch({
 	headless: process.env.HEADLESS !== "false" ? true : false,
-	channel: process.env.BROWSER_CHANNEL || "chrome",
+	channel: browserChannel,
 });
 
 facebook.setBrowser(browser);
