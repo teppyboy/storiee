@@ -11,21 +11,22 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import useSWR from "swr";
 
-// biome-ignore lint/suspicious/noExplicitAny: <explanation>
-const fetcher = (...args: any[]) => fetch(...args).then((res) => res.json());
-
 export default function StoryDownloadResult({
-	storyUrl,
-	method,
+	storyHtml,
 	removeResult,
 }) {
 	// Smartest way to handle the download :nerd:
-	console.log("Downloading story", storyUrl, method);
+	console.log("Parsing story HTML...");
 	const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8080";
-	const { data, error, isLoading } = useSWR(
-		`${apiUrl}/api/v1/facebook/story/url/${encodeURIComponent(
-			storyUrl,
-		)}?method=${method}`,
+	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+	const fetcher = (...args: any[]) => fetch(...args, {
+		method: "POST",
+		headers: { 'Content-Type': 'application/json' },
+		body: JSON.stringify({
+			html: btoa(storyHtml),
+		})
+	}).then(r => r.json());
+	const { data, error, isLoading } = useSWR(`${apiUrl}/api/v1/facebook/story/html`,
 		fetcher,
 	);
 	function handleRemoveResult() {
@@ -140,61 +141,51 @@ export default function StoryDownloadResult({
 					</Button>,
 				);
 			}
-			const vidWithoutAudios = [];
-			if (videoButtons.length > 0 || audios.length > 0) {
-				vidWithoutAudios.push(
-					<div>
-						<h4 className="mb-2">Videos WITHOUT audio</h4>
-						{videoButtons}
-						{audios}
-					</div>
-				)
-			}
 			tabsTriggers.push(
 				<TabsTrigger value={i.toString()}>Story {i + 1}</TabsTrigger>,
 			);
-			if (story.videos.muted.length === 0 && !story.videos.unified.browser_native_hd_url) {
+			if (story.videos.length === 0) {
 				tabsContents.push(
 					<TabsContent value={i.toString()}>
 						<div>The story is probably not a video story.</div>
 					</TabsContent>,
 				);
 			} else {
-				const vidWithAudios = [];
-				if (story.videos.unified.browser_native_sd_url) {
-					vidWithAudios.push(
-						<div className="my-2">
-							<h4 className="mb-2">Videos with audio</h4>
-							<Button
-								className="mr-2"
-								onClick={() =>
-									window.open(
-										story.videos.unified.browser_native_sd_url,
-										"_blank",
-									)
-								}
-							>
-								SD
-							</Button>
-							<Button
-								onClick={() =>
-									window.open(
-										story.videos.unified.browser_native_hd_url,
-										"_blank",
-									)
-								}
-							>
-								HD
-							</Button>
-						</div>
+				if (story.videos.unified.browser_native_hd_url) {
+					tabsContents.push(
+						<TabsContent value={i.toString()}>
+							<div className="my-2">
+								<h4 className="mb-2">Videos with audio</h4>
+								<Button
+									className="mr-2"
+									onClick={() =>
+										window.open(
+											story.videos.unified.browser_native_sd_url,
+											"_blank",
+										)
+									}
+								>
+									SD
+								</Button>
+								<Button
+									onClick={() =>
+										window.open(
+											story.videos.unified.browser_native_hd_url,
+											"_blank",
+										)
+									}
+								>
+									HD
+								</Button>
+							</div>
+							<div>
+								<h4 className="mb-2">Videos WITHOUT audio</h4>
+								{videoButtons}
+								{audios}
+							</div>
+						</TabsContent>,
 					);
 				}
-				tabsContents.push(
-					<TabsContent value={i.toString()}>
-						{vidWithAudios}
-						{vidWithoutAudios}
-					</TabsContent>,
-				);
 			}
 		}
 	} else {

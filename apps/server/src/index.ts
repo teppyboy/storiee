@@ -1,7 +1,7 @@
 import * as fs from "node:fs";
 import "@bogeychan/elysia-polyfills/node/index.js";
+import { cors } from "@elysiajs/cors";
 import { Elysia } from "elysia";
-import { cors } from '@elysiajs/cors'
 import puppeteer from "puppeteer";
 import * as constants from "./constants.js";
 import Facebook from "./facebook/index.js";
@@ -61,7 +61,9 @@ facebook.setBrowser(browser);
 await sleep(1000);
 
 logger.info("Starting server...");
-const app = new Elysia().use(cors()).use(api);
+const app = new Elysia().use(cors({
+	origin: true,
+})).use(api);
 app.listen(
 	{
 		port: 8080,

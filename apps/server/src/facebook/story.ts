@@ -41,7 +41,7 @@ class FacebookStory {
 				await page.goto(storyUrl);
 				const source = await page.content();
 				await page.close();
-				return this.getVideosAndAudioUrlsFromHTML(source, storyUrl);
+				return this.getVideosAndAudioUrlsFromHTML(source);
 			}
 			case "intercept": {
 				// Variables
@@ -275,7 +275,10 @@ class FacebookStory {
 						logger.error(`Failed to reorder videos: ${e}`);
 					}
 					// Remove empty last story.
-					if (stories[stories.length - 1].videos.length === 0 && stories[stories.length - 1].audio === null) {
+					if (
+						stories[stories.length - 1].videos.length === 0 &&
+						stories[stories.length - 1].audio === null
+					) {
 						stories.pop();
 					}
 				}
@@ -302,9 +305,8 @@ class FacebookStory {
 				throw new Error("Invalid method.");
 		}
 	}
-	getVideosAndAudioUrlsFromHTML(source: string, url: string) {
+	getVideosAndAudioUrlsFromHTML(source: string) {
 		const dom = new JSDOM(source, {
-			url: url,
 			runScripts: "dangerously",
 		});
 		const stories: [
