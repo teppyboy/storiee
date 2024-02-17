@@ -32,7 +32,7 @@ logger.info("Initializing browser...");
 // Launch the browser and open a new blank page
 const browser = await chromium.launch({
 	headless: process.env.HEADLESS !== "false" ? true : false,
-	channel: "chrome",
+	channel: process.env.BROWSER_CHANNEL || "chrome",
 });
 
 facebook.setBrowser(browser);
