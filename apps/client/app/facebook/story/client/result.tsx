@@ -147,13 +147,16 @@ export default function StoryDownloadResult({
 						<h4 className="mb-2">Videos WITHOUT audio</h4>
 						{videoButtons}
 						{audios}
-					</div>
-				)
+					</div>,
+				);
 			}
 			tabsTriggers.push(
 				<TabsTrigger value={i.toString()}>Story {i + 1}</TabsTrigger>,
 			);
-			if (story.videos.muted.length === 0 && !story.videos.unified.browser_native_hd_url) {
+			if (
+				story.videos.muted.length === 0 &&
+				!story.videos.unified.browser_native_hd_url
+			) {
 				tabsContents.push(
 					<TabsContent value={i.toString()}>
 						<div>The story is probably not a video story.</div>
@@ -186,7 +189,7 @@ export default function StoryDownloadResult({
 							>
 								HD
 							</Button>
-						</div>
+						</div>,
 					);
 				}
 				tabsContents.push(

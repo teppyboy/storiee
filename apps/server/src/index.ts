@@ -2,7 +2,7 @@ import * as fs from "node:fs";
 import "@bogeychan/elysia-polyfills/node/index.js";
 import { cors } from "@elysiajs/cors";
 import { Elysia } from "elysia";
-import puppeteer from "puppeteer";
+import { chromium } from "playwright";
 import * as constants from "./constants.js";
 import Facebook from "./facebook/index.js";
 import logger from "./logger.js";
@@ -28,13 +28,21 @@ for (const arg of process.argv) {
 }
 
 logger.info("Initializing components...");
+logger.info("Initializing browser...");
+// Launch the browser and open a new blank page
+const browser = await chromium.launch({
+	headless: process.env.HEADLESS !== "false" ? true : false,
+	channel: "chrome",
+});
+
+facebook.setBrowser(browser);
 // Load cookies
 logger.info("Loading cookies...");
-facebook.loadCookies();
-if (facebook.cookies.length > 0) {
-	logger.info(`Loaded ${facebook.cookies.length} cookies`);
+await facebook.loadCookies();
+if (facebook.contexts.length > 0) {
+	logger.info(`Loaded ${facebook.contexts.length} instances`);
 } else {
-	logger.error("No cookies loaded.");
+	logger.error("No instances loaded.");
 	logger.error(
 		"Please login to your account to load cookies with the 'add-account' command",
 	);
@@ -44,26 +52,17 @@ if (facebook.cookies.length > 0) {
 	process.exit(1);
 }
 
-logger.info("Initializing browser...");
-// Launch the browser and open a new blank page
-const browser = await puppeteer.launch({
-	headless: process.env.HEADLESS !== "false" ? true : false,
-	defaultViewport: {
-		width: 1920,
-		height: 1080,
-		deviceScaleFactor: 1,
-	},
-});
-
-facebook.setBrowser(browser);
-
 // Let the browser start up
 await sleep(1000);
 
 logger.info("Starting server...");
-const app = new Elysia().use(cors({
-	origin: true,
-})).use(api);
+const app = new Elysia()
+	.use(
+		cors({
+			origin: true,
+		}),
+	)
+	.use(api);
 app.listen(
 	{
 		port: 8080,

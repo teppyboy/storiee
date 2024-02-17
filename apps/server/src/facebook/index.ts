@@ -1,16 +1,16 @@
 import * as fs from "node:fs";
-import puppeteer from "puppeteer";
+import { Browser, BrowserContext, Page, chromium, devices } from "playwright";
 import logger from "../logger.js";
+import { sleep } from "../utils.js";
 import FacebookStory from "./story.js";
 
 class Facebook {
-	cookies: string[];
 	story: FacebookStory;
-	#browser: puppeteer.Browser | undefined;
+	#browser: Browser | undefined;
+	contexts: BrowserContext[] = [];
 	#pageCreationInterval: NodeJS.Timeout | undefined;
-	#pages: puppeteer.Page[] = [];
-	constructor(browser: puppeteer.Browser | undefined = undefined) {
-		this.cookies = [];
+	#pages: Page[] = [];
+	constructor(browser: Browser | undefined = undefined) {
 		this.story = new FacebookStory(this);
 		this.#browser = browser;
 		if (this.#browser) {
@@ -27,62 +27,67 @@ class Facebook {
 		this.#pageCreationInterval = setInterval(async () => {
 			// Hardcoding to 4 for now
 			if (this.#pages.length < 4) {
+				if (!this.#browser) {
+					clearInterval(this.#pageCreationInterval);
+					return;
+				}
 				logger.debug(
 					`Creating new page. Current page count: ${this.#pages.length}`,
 				);
-				if (!this.#browser) {
+				if (this.contexts.length === 0) {
 					return;
 				}
-				const page = await this.#browser.newPage();
+				const context =
+					this.contexts[Math.floor(Math.random() * this.contexts.length)];
+				const page = await context.newPage();
 				this.#pages.push(page);
 			}
 		}, 100);
 	}
-	setBrowser(browser: puppeteer.Browser) {
+	setBrowser(browser: Browser) {
 		this.#browser = browser;
 		this.#enableAutoPageCreation();
 	}
-	loadCookies() {
+	async loadCookies() {
+		if (!this.#browser) {
+			throw new Error("Browser is not initialized.");
+		}
 		for (const file of fs.readdirSync("data/cookies/fb/")) {
 			logger.debug(`Loading cookie file: ${file}`);
 			const path = `data/cookies/fb/${file}`;
 			const cookie = fs.readFileSync(path, "utf8");
-			this.cookies.push(JSON.parse(cookie));
+			const context = await this.#browser.newContext(
+				{...devices["Desktop Edge"]}
+			);
+			context.addCookies(JSON.parse(cookie));
+			this.contexts.push(context);
 		}
 	}
-	getRandomCookie() {
-		const cookie =
-			this.cookies[Math.floor(Math.random() * this.cookies.length)];
-		return cookie;
-	}
 	async getPage() {
-		let page: puppeteer.Page;
+		let page: Page;
 		const maybePage = this.#pages.shift();
 		if (!maybePage) {
 			if (!this.#browser) {
 				throw new Error("Browser is not initialized.");
 			}
-			page = await this.#browser.newPage();
+			const context =
+				this.contexts[Math.floor(Math.random() * this.contexts.length)];
+			page = await context.newPage();
 		} else {
 			page = maybePage;
 		}
-		const cookie = this.getRandomCookie();
-		await page.setCookie(...(cookie as unknown as puppeteer.CookieParam[]));
 		return page;
 	}
 	async addAccount() {
 		logger.info("Adding account...");
-		const browser = await puppeteer.launch({
+		const browser = await chromium.launch({
 			headless: false,
-			defaultViewport: {
-				width: 1280,
-				height: 720,
-				deviceScaleFactor: 1,
-			},
 		});
-		const page = (await browser.pages())[0];
+		const context = await browser.newContext(
+			{...devices["Desktop Edge"]}
+		)
+		const page = await context.newPage();
 		await page.goto("https://www.facebook.com/login/");
-		await page.waitForNavigation();
 		let url = new URL(page.url());
 		while (url.pathname !== "/") {
 			if (url.pathname.startsWith("/checkpoint")) {
@@ -90,11 +95,11 @@ class Facebook {
 				logger.error("Checkpoint detected, KEKW.");
 				throw new Error("Account is locked, can't continue.");
 			}
-			await page.waitForNavigation();
+			await sleep(1000);
 			url = new URL(page.url());
 		}
 		logger.info("Saving cookies...");
-		const cookies = await page.cookies();
+		const cookies = await context.cookies();
 		const fileName = new Date().getTime();
 		fs.writeFileSync(
 			`data/cookies/fb/${fileName}.json`,
