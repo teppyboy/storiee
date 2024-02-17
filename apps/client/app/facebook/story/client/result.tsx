@@ -28,7 +28,7 @@ export default function StoryDownloadResult({ storyUrl, method, removeResult }) 
 		removeResult();
 	}
 	const removeResultButton = (
-		<div className="w-full flex justify-end m-0 p-0">
+		<div className="w-full flex justify-end m-0 p-0" id={Math.random().toString(36)}>
 			<Button variant="outline" className="text-1.5xl" onClick={handleRemoveResult}>
 				X
 			</Button>
@@ -44,10 +44,7 @@ export default function StoryDownloadResult({ storyUrl, method, removeResult }) 
 							{removeResultButton}
 						</div>
 					</CardHeader>
-					<CardContent>Failed to download story.</CardContent>
-					<CardFooter>
-						{/* <Button onClick={handleDownload}>Download</Button> */}
-					</CardFooter>
+					<CardContent>Failed to download story information.</CardContent>
 				</Card>
 			</div>
 		);
@@ -59,9 +56,9 @@ export default function StoryDownloadResult({ storyUrl, method, removeResult }) 
 					<CardHeader>
 						<CardTitle>Downloading story information...</CardTitle>
 					</CardHeader>
-					<CardContent>
+					<CardContent className="text-opacity-80">
 						The process will take a few seconds, please wait.
-						<br />
+						<br /><br />
 						If you are using "Intercept" method then it'll take a bit longer.
 					</CardContent>
 				</Card>
@@ -90,6 +87,23 @@ export default function StoryDownloadResult({ storyUrl, method, removeResult }) 
 		);
 	}
 	const storyData = data.data;
+	if (storyData.stories.length === 0) {
+		return (
+			<div>
+			<Card className="w mt-4">
+				<CardHeader>
+					<div className="flex flex-row">
+						<CardTitle>Result</CardTitle>
+						{removeResultButton}
+					</div>
+				</CardHeader>
+				<CardContent>
+					Successfully fetch story information, but there isn't any video stories in the URL you provided.
+				</CardContent>
+			</Card>
+		</div>
+		)
+	}
 	const tabsTriggers = [];
 	const tabsContents = [];
 	if (method === "html") {
@@ -123,39 +137,41 @@ export default function StoryDownloadResult({ storyUrl, method, removeResult }) 
 					</TabsContent>,
 				);
 			} else {
-				tabsContents.push(
-					<TabsContent value={i.toString()}>
-						<div className="my-2">
-							<h4 className="mb-2">Videos with audio</h4>
-							<Button
-								className="mr-2"
-								onClick={() =>
-									window.open(
-										story.videos.unified.browser_native_sd_url,
-										"_blank",
-									)
-								}
-							>
-								SD
-							</Button>
-							<Button
-								onClick={() =>
-									window.open(
-										story.videos.unified.browser_native_hd_url,
-										"_blank",
-									)
-								}
-							>
-								HD
-							</Button>
-						</div>
-						<div>
-							<h4 className="mb-2">Videos WITHOUT audio</h4>
-							{videoButtons}
-							{audios}
-						</div>
-					</TabsContent>,
-				);
+				if (story.videos.unified.browser_native_hd_url) {
+					tabsContents.push(
+						<TabsContent value={i.toString()}>
+							<div className="my-2">
+								<h4 className="mb-2">Videos with audio</h4>
+								<Button
+									className="mr-2"
+									onClick={() =>
+										window.open(
+											story.videos.unified.browser_native_sd_url,
+											"_blank",
+										)
+									}
+								>
+									SD
+								</Button>
+								<Button
+									onClick={() =>
+										window.open(
+											story.videos.unified.browser_native_hd_url,
+											"_blank",
+										)
+									}
+								>
+									HD
+								</Button>
+							</div>
+							<div>
+								<h4 className="mb-2">Videos WITHOUT audio</h4>
+								{videoButtons}
+								{audios}
+							</div>
+						</TabsContent>,
+					);
+				}
 			}
 		}
 	} else {
@@ -215,9 +231,12 @@ export default function StoryDownloadResult({ storyUrl, method, removeResult }) 
 					<CardTitle>Result</CardTitle>
 					{removeResultButton}
 				</div>
-				<CardDescription>
+				<CardDescription className="text-wrap">
 					Successfully fetch story information, click the story you want to
 					download.
+					<div className="text-balance">
+						<a href={storyUrl} target="_blank" rel="noreferrer">Click here to open the story in Facebook.</a>
+					</div>	
 				</CardDescription>
 			</CardHeader>
 			<CardContent>
