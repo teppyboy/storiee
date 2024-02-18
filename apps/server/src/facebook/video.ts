@@ -2,6 +2,7 @@ import { JSDOM } from "jsdom";
 import logger from "../logger.js";
 import { findValue, getValue, getValueAll, sleep } from "../utils.js";
 import { RemoteVideo } from "./classes.js";
+import fs from "fs";
 import Facebook from "./index.js";
 
 class FacebookVideo {
@@ -146,11 +147,11 @@ class FacebookVideo {
 				});
 
 				await page.goto(videoUrl);
-                await sleep(500);
+                await sleep(10);
 				await viewVideo();
                 // Change resolution
-                await page.locator("[aria-label=Settings]")?.click();
-                await sleep(50);
+                await page.locator("[aria-label=Settings]").first()?.click();
+                await sleep(10);
                 // biome-ignore lint/suspicious/noImplicitAnyLet: elm is ElementHandleForTag<"div">
                 let parentElement;
                 for (const element of await page.locator("div").all()) {
@@ -161,7 +162,7 @@ class FacebookVideo {
                         break;
                     }
                 }
-				await sleep(50);
+				await sleep(10);
 				logger.debug(`Parent element: ${parentElement}`);
                 if (parentElement) {
 					try {
@@ -174,7 +175,7 @@ class FacebookVideo {
 								const qualityBtn = qualityElement.children[i].children[0];
 								currentHeight = parseInt(qualityBtn.children[1].innerHTML.slice(0, -1));
 								(qualityBtn as HTMLElement).click();
-								await sleep(500);
+								await sleep(10);
 							}
 						} else {
 							logger.warn("Failed to get quality element.");
@@ -250,17 +251,22 @@ class FacebookVideo {
 					// fs.writeFileSync("a.json", script.innerHTML);
 					for (const [i, attachments] of attachmentsArr.entries()) {
 						logger.debug("Attachments: %o", attachments);
-						logger.debug(`Index: ${i}`);
-						video.videos.unified = {
-							browser_native_sd_url: attachments[0].media.browser_native_sd_url,
-							browser_native_hd_url: attachments[0].media.browser_native_hd_url,
-						};
-						// Parse thumbnails
-						try {
-							thumbnails[i] =
-								attachments[0].media.preferred_thumbnail.image.url;
-						} catch (e) {
-							logger.warn(`Failed to parse thumbnail: ${e}`);
+						logger.debug("Attachment URL: %s", attachments[0].url);
+						if (attachments[0].url === undefined) {
+							logger.debug(`Index: ${i}`);
+							if (!video.videos.unified.browser_native_hd_url) {
+								video.videos.unified = {
+									browser_native_sd_url: attachments[0].media.browser_native_sd_url,
+									browser_native_hd_url: attachments[0].media.browser_native_hd_url,
+								};
+							}
+							// Parse thumbnails
+							try {
+								thumbnails[i] =
+									attachments[0].media.preferred_thumbnail.image.url;
+							} catch (e) {
+								logger.warn(`Failed to parse thumbnail: ${e}`);
+							}
 						}
 					}
 				}
@@ -271,8 +277,11 @@ class FacebookVideo {
 					"all_video_dash_prefetch_representations",
 				);
 				if (videoDashes) {
+					fs.writeFileSync("a.json", script.innerHTML);
 					for (const [i, videoDash] of videoDashes.entries()) {
+						logger.debug("Video dash: %o", videoDash);
 						for (const representation of videoDash.representations) {
+							logger.debug("Representation: %o", representation);
 							if (representation.mime_type.includes("video")) {
 								const vid = new RemoteVideo(
 									representation.base_url,
@@ -288,6 +297,7 @@ class FacebookVideo {
 							}
 						}
 					}
+					break;
 				}
 			} catch (e) {
 				logger.debug("Failed to parse script innerHTML: %s", e);
