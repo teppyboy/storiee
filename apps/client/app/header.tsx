@@ -10,15 +10,15 @@ export default function Header() {
 				Storiee
 			</a>
 			<div className="w-full flex justify-end">
-				<Button variant="link" className="text-1.5xl">
+				<a href="/" className="p-2 font-normal text-1.5xl">
 					Reels
-				</Button>
-				<Button variant="link" className="text-1.5xl">
+				</a>
+				<a href="/facebook/video" className="p-2 font-normal text-1.5xl">
 					Video
-				</Button>
-				<Button variant="link" className="text-1.5xl">
+				</a>
+				<a href="/" className="p-2 font-normal text-1.5xl">
 					Story
-				</Button>
+				</a>
 			</div>
 		</header>
 	);
