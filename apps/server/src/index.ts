@@ -15,15 +15,26 @@ const facebook = new Facebook();
 // Create a data directory if it doesn't exist
 fs.mkdirSync("data/cookies/", { recursive: true });
 
-for (const arg of process.argv) {
-	if (arg === "add-account") {
-		try {
-			await facebook.addAccount();
-		} catch (e) {
-			logger.error(`Failed to add account: ${e}`);
-			process.exit(1);
-		}
-		process.exit(0);
+for (const [i, arg] of process.argv.entries()) {
+	switch (arg) {
+		// Rule because of the process.exit(0) statement
+		// biome-ignore lint/suspicious/noFallthroughSwitchClause: <explanation>
+		case "add-account":
+			try {
+				await facebook.addAccount();
+			} catch (e) {
+				logger.error(`Failed to add account: ${e}`);
+				process.exit(1);
+			}
+			process.exit(0);
+		case "relogin-account": 
+			try {
+				await facebook.reloginAccount(process.argv[i + 1]);
+			} catch (e) {
+				logger.error(`Failed to re-login account: ${e}`);
+				process.exit(1);
+			}
+			process.exit(0);
 	}
 }
 
