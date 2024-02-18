@@ -17,8 +17,7 @@ fs.mkdirSync("data/cookies/", { recursive: true });
 
 for (const [i, arg] of process.argv.entries()) {
 	switch (arg) {
-		// Rule because of the process.exit(0) statement
-		// biome-ignore lint/suspicious/noFallthroughSwitchClause: <explanation>
+		// biome-ignore lint/suspicious/noFallthroughSwitchClause: process.exit(0)
 		case "add-account":
 			try {
 				await facebook.addAccount();
@@ -27,11 +26,20 @@ for (const [i, arg] of process.argv.entries()) {
 				process.exit(1);
 			}
 			process.exit(0);
+		// biome-ignore lint/suspicious/noFallthroughSwitchClause: process.exit(0)
 		case "relogin-account": 
 			try {
 				await facebook.reloginAccount(process.argv[i + 1]);
 			} catch (e) {
 				logger.error(`Failed to re-login account: ${e}`);
+				process.exit(1);
+			}
+			process.exit(0);
+		case "launch-browser": 
+			try {
+				await facebook.openPage(process.argv[i + 1]);
+			} catch (e) {
+				logger.error(`Failed to launch browser: ${e}`);
 				process.exit(1);
 			}
 			process.exit(0);

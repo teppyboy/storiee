@@ -22,7 +22,6 @@ class FacebookStory {
 	 * information such as video resolution). But beware that results may not be as good as
 	 * the `html` method.
 	 *
-	 * @param page
 	 * @param url
 	 * @param method
 	 * @returns

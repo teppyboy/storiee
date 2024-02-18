@@ -3,16 +3,21 @@ import { Browser, BrowserContext, Page, chromium, devices } from "playwright";
 import logger from "../logger.js";
 import { sleep } from "../utils.js";
 import FacebookStory from "./story.js";
+import FacebookVideo from "./video.js";
 
 class Facebook {
 	story: FacebookStory;
+	video: FacebookVideo;
 	#browser: Browser | undefined;
+	#browserChannel: string;
 	contexts: BrowserContext[] = [];
 	#pageCreationInterval: NodeJS.Timeout | undefined;
 	#pages: Page[] = [];
 	constructor(browser: Browser | undefined = undefined) {
 		this.story = new FacebookStory(this);
+		this.video = new FacebookVideo(this);
 		this.#browser = browser;
+		this.#browserChannel = process.env.BROWSER_CHANNEL || "chrome";
 		if (this.#browser) {
 			logger.debug("Creating setInterval to create new pages...");
 			this.#enableAutoPageCreation();
@@ -40,15 +45,15 @@ class Facebook {
 				);
 				const context =
 					this.contexts[Math.floor(Math.random() * this.contexts.length)];
-				if (prevPageLen === this.#pages.length) {
-					logger.debug("Previous page length is same as current.");
-					return;
-				}
+				// if (prevPageLen === this.#pages.length) {
+				// 	logger.debug("Previous page length is same as current.");
+				// 	return;
+				// }
 				prevPageLen = this.#pages.length;
 				const page = await context.newPage();
 				this.#pages.push(page);
 			}
-		}, 100);
+		}, 250);
 	}
 	setBrowser(browser: Browser) {
 		this.#browser = browser;
@@ -95,6 +100,7 @@ class Facebook {
 		logger.info("Adding account...");
 		const browser = await chromium.launch({
 			headless: false,
+			channel: this.#browserChannel,
 		});
 		const context = await browser.newContext(
 			{...devices["Desktop Edge"]}
@@ -129,6 +135,29 @@ class Facebook {
 			return true;
 		}
 	}
+	async openPage(cookieFile: string) {
+		logger.info(`Using cookie file: ${cookieFile}`);
+		if (!fs.existsSync(`data/cookies/fb/${cookieFile}`)) {
+			throw new Error("Cookie file does not exist.");
+		}
+		logger.info("Launching browser with specified cookie file...");
+		const browser = await chromium.launch({
+			headless: false,
+			channel: this.#browserChannel,
+		});
+		const context = await browser.newContext(
+			{...devices["Desktop Edge"]}
+		)
+		context.addCookies(
+			JSON.parse(
+				fs.readFileSync(`data/cookies/fb/${cookieFile}`, "utf8"),
+			),
+		);
+		await context.newPage();
+		while (true) {
+			await sleep(1000);
+		}
+	}
 	async reloginAccount(cookieFile: string) {
 		logger.info(`Validating account with cookie file: ${cookieFile}`);
 		if (!fs.existsSync(`data/cookies/fb/${cookieFile}`)) {
@@ -137,6 +166,7 @@ class Facebook {
 		logger.info("Launching browser with specified cookie file...");
 		const browser = await chromium.launch({
 			headless: false,
+			channel: this.#browserChannel,
 		});
 		const context = await browser.newContext(
 			{...devices["Desktop Edge"]}
