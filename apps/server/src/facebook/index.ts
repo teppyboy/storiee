@@ -40,7 +40,17 @@ class Facebook {
 			await page.goto("https://www.facebook.com/");
 			if (await this.isAccountLoggedOut(page)) {
 				logger.warn(`Account in ${file} is logged out.`);
-				continue;
+				logger.info("Trying to re-login...");
+				try {
+					await this.reloginAccountHeadless(page, {
+						context,
+						cookieFile: file,
+					});
+				} catch (e) {
+					logger.error(`Failed to re-login account: ${e}`);
+					page.close();
+					continue;
+				}
 			}
 			page.close();
 			this.contexts.push({
