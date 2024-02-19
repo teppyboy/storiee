@@ -150,9 +150,15 @@ export default function StoryDownloadResult({
 					</div>,
 				);
 			}
-			tabsTriggers.push(
-				<TabsTrigger value={i.toString()}>Story {i + 1}</TabsTrigger>,
-			);
+			if (storyData.stories.length <= 5) {
+				tabsTriggers.push(
+					<TabsTrigger value={i.toString()}>Story {i + 1}</TabsTrigger>,
+				);
+			} else {
+				tabsTriggers.push(
+					<TabsTrigger value={i.toString()}>{i + 1}</TabsTrigger>,
+				);
+			}
 			if (
 				story.videos.muted.length === 0 &&
 				!story.videos.unified.browser_native_hd_url
@@ -227,9 +233,15 @@ export default function StoryDownloadResult({
 					</Button>,
 				);
 			}
-			tabsTriggers.push(
-				<TabsTrigger value={i.toString()}>Story {i + 1}</TabsTrigger>,
-			);
+			if (storyData.stories.length <= 5) {
+				tabsTriggers.push(
+					<TabsTrigger value={i.toString()}>Story {i + 1}</TabsTrigger>,
+				);
+			} else {
+				tabsTriggers.push(
+					<TabsTrigger value={i.toString()}>{i + 1}</TabsTrigger>,
+				);
+			}
 			if (story.videos.length === 0) {
 				tabsContents.push(
 					<TabsContent value={i.toString()}>

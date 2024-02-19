@@ -55,7 +55,7 @@ export default function StoryDownloadResult({
 							{removeResultButton}
 						</div>
 					</CardHeader>
-					<CardContent>Failed to download story information.</CardContent>
+					<CardContent>Failed to download video information.</CardContent>
 				</Card>
 			</div>
 		);
@@ -65,7 +65,7 @@ export default function StoryDownloadResult({
 			<div>
 				<Card className="w mt-4">
 					<CardHeader>
-						<CardTitle>Downloading story information...</CardTitle>
+						<CardTitle>Downloading video information...</CardTitle>
 					</CardHeader>
 					<CardContent className="text-opacity-80">
 						The process will take a few seconds, please wait.
@@ -89,7 +89,7 @@ export default function StoryDownloadResult({
 						</div>
 					</CardHeader>
 					<CardContent>
-						An error occurred while downloading the story information:{" "}
+						An error occurred while downloading the video information:{" "}
 						<code>{data.message}</code>
 						<br />
 						Error code: <code>{data.error}</code>
