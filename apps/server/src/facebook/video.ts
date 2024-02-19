@@ -2,7 +2,6 @@ import { JSDOM } from "jsdom";
 import logger from "../logger.js";
 import { findValue, getValue, getValueAll, sleep } from "../utils.js";
 import { RemoteVideo } from "./classes.js";
-import fs from "fs";
 import Facebook from "./index.js";
 
 class FacebookVideo {
@@ -277,7 +276,8 @@ class FacebookVideo {
 					"all_video_dash_prefetch_representations",
 				);
 				if (videoDashes) {
-					fs.writeFileSync("a.json", script.innerHTML);
+					// Used for debugging only :skull:
+					// fs.writeFileSync("a.json", script.innerHTML);
 					for (const [i, videoDash] of videoDashes.entries()) {
 						logger.debug("Video dash: %o", videoDash);
 						for (const representation of videoDash.representations) {

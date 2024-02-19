@@ -81,9 +81,7 @@ const host = process.env.SERVER_HOST || "127.0.0.1";
 logger.info("Starting server...");
 const app = new Elysia()
 	.use(
-		cors({
-			origin: true,
-		}),
+		cors(),
 	)
 	.use(api);
 app.listen(

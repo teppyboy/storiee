@@ -10,54 +10,19 @@ class Facebook {
 	video: FacebookVideo;
 	#browser: Browser | undefined;
 	#browserChannel: string;
-	contexts: BrowserContext[] = [];
-	#pageCreationInterval: NodeJS.Timeout | undefined;
-	#pages: Page[] = [];
+	contexts: {
+		context: BrowserContext,
+		cookieFile: string,
+	}[] = [];
 	constructor(browser: Browser | undefined = undefined) {
 		this.story = new FacebookStory(this);
 		this.video = new FacebookVideo(this);
 		this.#browser = browser;
 		this.#browserChannel = process.env.BROWSER_CHANNEL || "chrome";
-		if (this.#browser) {
-			logger.debug("Creating setInterval to create new pages...");
-			this.#enableAutoPageCreation();
-		}
 		fs.mkdirSync("data/cookies/fb/", { recursive: true });
-	}
-	#enableAutoPageCreation() {
-		if (this.#pageCreationInterval) {
-			clearInterval(this.#pageCreationInterval);
-			this.#pages = [];
-		}
-		let prevPageLen = -1;
-		this.#pageCreationInterval = setInterval(async () => {
-			// Hardcoding to 4 for now
-			if (this.#pages.length < 4) {
-				if (!this.#browser) {
-					clearInterval(this.#pageCreationInterval);
-					return;
-				}
-				if (this.contexts.length === 0) {
-					return;
-				}
-				logger.debug(
-					`Creating new page. Current page count: ${this.#pages.length}`,
-				);
-				const context =
-					this.contexts[Math.floor(Math.random() * this.contexts.length)];
-				// if (prevPageLen === this.#pages.length) {
-				// 	logger.debug("Previous page length is same as current.");
-				// 	return;
-				// }
-				prevPageLen = this.#pages.length;
-				const page = await context.newPage();
-				this.#pages.push(page);
-			}
-		}, 250);
 	}
 	setBrowser(browser: Browser) {
 		this.#browser = browser;
-		this.#enableAutoPageCreation();
 	}
 	async loadCookies() {
 		if (!this.#browser) {
@@ -78,23 +43,48 @@ class Facebook {
 				continue;
 			}
 			page.close();
-			this.contexts.push(context);
+			this.contexts.push({
+				context: context,
+				cookieFile: file,
+			});
 		}
 	}
 	async getPage() {
-		let page: Page;
-		const maybePage = this.#pages.shift();
-		if (!maybePage) {
-			if (!this.#browser) {
-				throw new Error("Browser is not initialized.");
-			}
-			const context =
-				this.contexts[Math.floor(Math.random() * this.contexts.length)];
-			page = await context.newPage();
-		} else {
-			page = maybePage;
+		if (!this.#browser) {
+			throw new Error("Browser is not initialized.");
+		}
+		const contextData =
+			this.contexts[Math.floor(Math.random() * this.contexts.length)];
+		const page = await contextData.context.newPage();
+		if (await this.isAccountLoggedOut(page)) {
+			logger.warn(
+				`Account in ${contextData.cookieFile} is logged out, trying to re-login...`,
+			);
+			await this.reloginAccountHeadless(page, contextData);
 		}
 		return page;
+	}
+	async isAccountLoggedOut(page: Page) {
+		try {
+			return await page.$(".UIPage_LoggedOut");
+		} catch (e) {
+			logger.warn(`Error while getting logged out element: ${e}`);
+			return true;
+		}
+	}
+	async reloginAccountHeadless(page: Page, contextData: {
+		context: BrowserContext,
+		cookieFile: string,
+	}) {
+		const loginButton = await page.$('a[href^="/login"]');
+		if (!loginButton) {
+			throw new Error("Login button not found.");
+		}
+		await loginButton.click();
+		while (await this.isAccountLoggedOut(page)) {
+			await sleep(1000);
+		}
+		await this.#saveLoginCookies(page, contextData.context, contextData.cookieFile);
 	}
 	async addAccount() {
 		logger.info("Adding account...");
@@ -107,6 +97,12 @@ class Facebook {
 		)
 		const page = await context.newPage();
 		await page.goto("https://www.facebook.com/login/");
+		const fileName = new Date().getTime().toString();
+		await this.#saveLoginCookies(page, context, fileName);
+		await browser.close();
+		logger.info(`Account added successfully to ${fileName}.json`);
+	}
+	async #saveLoginCookies(page: Page, context: BrowserContext, cookieFile: string) {
 		let url = new URL(page.url());
 		while (url.pathname !== "/") {
 			if (url.pathname.startsWith("/checkpoint")) {
@@ -114,27 +110,17 @@ class Facebook {
 				logger.error("Checkpoint detected, KEKW.");
 				throw new Error("Account is locked, can't continue.");
 			}
-			await sleep(1000);
+			await sleep(250);
 			url = new URL(page.url());
 		}
 		logger.info("Saving cookies...");
 		const cookies = await context.cookies();
-		const fileName = new Date().getTime();
 		fs.writeFileSync(
-			`data/cookies/fb/${fileName}.json`,
+			`data/cookies/fb/${cookieFile}`,
 			JSON.stringify(cookies, null, 4),
 		);
-		await browser.close();
-		logger.info(`Account added successfully to ${fileName}.json`);
 	}
-	async isAccountLoggedOut(page: Page) {
-		try {
-			return await page.$(".UIPage_LoggedOut");
-		} catch (e) {
-			logger.warn(`Error while getting logged out element: ${e}`);
-			return true;
-		}
-	}
+	// Headful functions.
 	async openPage(cookieFile: string) {
 		logger.info(`Using cookie file: ${cookieFile}`);
 		if (!fs.existsSync(`data/cookies/fb/${cookieFile}`)) {
@@ -153,6 +139,7 @@ class Facebook {
 				fs.readFileSync(`data/cookies/fb/${cookieFile}`, "utf8"),
 			),
 		);
+		logger.warn("Please use Ctrl + C to close the browser manually.");
 		await context.newPage();
 		while (true) {
 			await sleep(1000);
@@ -178,7 +165,6 @@ class Facebook {
 		);
 		const page = await context.newPage();
 		await page.goto("https://www.facebook.com/");
-		let url = new URL(page.url());
 		if (!await this.isAccountLoggedOut(page)) {
 			logger.info("Account is already logged in.");
 			return;
@@ -187,21 +173,7 @@ class Facebook {
 		while (await this.isAccountLoggedOut(page)) {
 			await sleep(1000);
 		}
-		while (url.pathname !== "/") {
-			if (url.pathname.startsWith("/checkpoint")) {
-				// The account is locked, we can't continue.
-				logger.error("Checkpoint detected, KEKW.");
-				throw new Error("Account is locked, can't continue.");
-			}
-			await sleep(1000);
-			url = new URL(page.url());
-		}
-		logger.info("Saving cookies...");
-		const cookies = await context.cookies();
-		fs.writeFileSync(
-			`data/cookies/fb/${cookieFile}`,
-			JSON.stringify(cookies, null, 4),
-		);
+		await this.#saveLoginCookies(page, context, cookieFile);
 		await browser.close();
 		logger.info(`Account added successfully to ${cookieFile}`);
 	}
