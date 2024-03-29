@@ -11,8 +11,8 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import React, { ChangeEvent, useState } from "react";
-import { CheckedState } from "@radix-ui/react-checkbox";
+import React, { type ChangeEvent, useState } from "react";
+import type { CheckedState } from "@radix-ui/react-checkbox";
 
 export default function StoryDownloadForm({ onDownloadClicked }) {
 	const [storyUrl, setStoryUrl] = useState("");
@@ -32,9 +32,9 @@ export default function StoryDownloadForm({ onDownloadClicked }) {
 	return (
 		<Card className="w">
 			<CardHeader>
-				<CardTitle>Story Downloader</CardTitle>
+				<CardTitle>Private Story Downloader</CardTitle>
 				<CardDescription>
-					Easily download any public Facebook stories.
+					Easily download any private Facebook stories.
 				</CardDescription>
 			</CardHeader>
 			<CardContent>

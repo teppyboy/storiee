@@ -27,8 +27,8 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
-import React, { ChangeEvent, useState } from "react";
-import { CheckedState } from "@radix-ui/react-checkbox";
+import React, { type ChangeEvent, useState } from "react";
+import type { CheckedState } from "@radix-ui/react-checkbox";
 
 export default function StoryDownloadForm({ onDownloadClicked }) {
 	const [storyUrl, setStoryUrl] = useState("");
@@ -59,6 +59,9 @@ export default function StoryDownloadForm({ onDownloadClicked }) {
 				</CardDescription>
 			</CardHeader>
 			<CardContent>
+				<div className="text-sm text-muted-foreground my-2">
+					<a href="/facebook/story/private">Interested in downloading private stories? Click here :)</a>
+				</div>
 				<form
 					onSubmit={(e) => {
 						e.preventDefault();

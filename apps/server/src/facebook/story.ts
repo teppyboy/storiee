@@ -130,7 +130,9 @@ class FacebookStory {
 					if (url.pathname.endsWith(".mp4")) {
 						url.searchParams.delete("bytestart");
 						const fileName = url.pathname.split("/").pop() as string;
-						const byteEnd = Number.parseInt(url.searchParams.get("byteend") as string);
+						const byteEnd = Number.parseInt(
+							url.searchParams.get("byteend") as string,
+						);
 						logger.debug(`Byte end: ${byteEnd}`);
 						const currentBandwidth = getBandwidth(fileName);
 						if (!currentBandwidth) {

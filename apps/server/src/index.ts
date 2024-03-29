@@ -27,7 +27,7 @@ for (const [i, arg] of process.argv.entries()) {
 			}
 			process.exit(0);
 		// biome-ignore lint/suspicious/noFallthroughSwitchClause: process.exit(0)
-		case "relogin-account": 
+		case "relogin-account":
 			try {
 				await facebook.reloginAccount(process.argv[i + 1]);
 			} catch (e) {
@@ -35,7 +35,7 @@ for (const [i, arg] of process.argv.entries()) {
 				process.exit(1);
 			}
 			process.exit(0);
-		case "launch-browser": 
+		case "launch-browser":
 			try {
 				await facebook.openPage(process.argv[i + 1]);
 			} catch (e) {
@@ -79,11 +79,7 @@ const port = Number.parseInt(process.env.SERVER_PORT as string) || 8080;
 const host = process.env.SERVER_HOST || "127.0.0.1";
 
 logger.info("Starting server...");
-const app = new Elysia()
-	.use(
-		cors(),
-	)
-	.use(api);
+const app = new Elysia().use(cors()).use(api);
 app.listen(
 	{
 		port: port,

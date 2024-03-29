@@ -1,5 +1,11 @@
 import * as fs from "node:fs";
-import { type Browser, type BrowserContext, type Page, chromium, devices } from "playwright";
+import {
+	type Browser,
+	type BrowserContext,
+	type Page,
+	chromium,
+	devices,
+} from "playwright";
 import logger from "../logger.js";
 import { sleep } from "../utils.js";
 import FacebookStory from "./story.js";
@@ -11,8 +17,8 @@ class Facebook {
 	#browser: Browser | undefined;
 	#browserChannel: string;
 	contexts: {
-		context: BrowserContext,
-		cookieFile: string,
+		context: BrowserContext;
+		cookieFile: string;
 	}[] = [];
 	constructor(browser: Browser | undefined = undefined) {
 		this.story = new FacebookStory(this);
@@ -32,9 +38,9 @@ class Facebook {
 			logger.debug(`Loading cookie file: ${file}`);
 			const path = `data/cookies/fb/${file}`;
 			const cookie = fs.readFileSync(path, "utf8");
-			const context = await this.#browser.newContext(
-				{...devices["Desktop Edge"]}
-			);
+			const context = await this.#browser.newContext({
+				...devices["Desktop Edge"],
+			});
 			context.addCookies(JSON.parse(cookie));
 			const page = await context.newPage();
 			await page.goto("https://www.facebook.com/");
@@ -82,10 +88,13 @@ class Facebook {
 			return true;
 		}
 	}
-	async reloginAccountHeadless(page: Page, contextData: {
-		context: BrowserContext,
-		cookieFile: string,
-	}) {
+	async reloginAccountHeadless(
+		page: Page,
+		contextData: {
+			context: BrowserContext;
+			cookieFile: string;
+		},
+	) {
 		const loginButton = await page.$('a[href^="/login"]');
 		if (!loginButton) {
 			throw new Error("Login button not found.");
@@ -94,7 +103,11 @@ class Facebook {
 		while (await this.isAccountLoggedOut(page)) {
 			await sleep(1000);
 		}
-		await this.#saveLoginCookies(page, contextData.context, contextData.cookieFile);
+		await this.#saveLoginCookies(
+			page,
+			contextData.context,
+			contextData.cookieFile,
+		);
 	}
 	async addAccount() {
 		logger.info("Adding account...");
@@ -102,9 +115,7 @@ class Facebook {
 			headless: false,
 			channel: this.#browserChannel,
 		});
-		const context = await browser.newContext(
-			{...devices["Desktop Edge"]}
-		)
+		const context = await browser.newContext({ ...devices["Desktop Edge"] });
 		const page = await context.newPage();
 		await page.goto("https://www.facebook.com/login/");
 		const fileName = new Date().getTime().toString();
@@ -112,7 +123,11 @@ class Facebook {
 		await browser.close();
 		logger.info(`Account added successfully to ${fileName}.json`);
 	}
-	async #saveLoginCookies(page: Page, context: BrowserContext, cookieFile: string) {
+	async #saveLoginCookies(
+		page: Page,
+		context: BrowserContext,
+		cookieFile: string,
+	) {
 		let url = new URL(page.url());
 		while (url.pathname !== "/") {
 			if (url.pathname.startsWith("/checkpoint")) {
@@ -141,13 +156,9 @@ class Facebook {
 			headless: false,
 			channel: this.#browserChannel,
 		});
-		const context = await browser.newContext(
-			{...devices["Desktop Edge"]}
-		)
+		const context = await browser.newContext({ ...devices["Desktop Edge"] });
 		context.addCookies(
-			JSON.parse(
-				fs.readFileSync(`data/cookies/fb/${cookieFile}`, "utf8"),
-			),
+			JSON.parse(fs.readFileSync(`data/cookies/fb/${cookieFile}`, "utf8")),
 		);
 		logger.warn("Please use Ctrl + C to close the browser manually.");
 		await context.newPage();
@@ -165,17 +176,13 @@ class Facebook {
 			headless: false,
 			channel: this.#browserChannel,
 		});
-		const context = await browser.newContext(
-			{...devices["Desktop Edge"]}
-		)
+		const context = await browser.newContext({ ...devices["Desktop Edge"] });
 		context.addCookies(
-			JSON.parse(
-				fs.readFileSync(`data/cookies/fb/${cookieFile}`, "utf8"),
-			),
+			JSON.parse(fs.readFileSync(`data/cookies/fb/${cookieFile}`, "utf8")),
 		);
 		const page = await context.newPage();
 		await page.goto("https://www.facebook.com/");
-		if (!await this.isAccountLoggedOut(page)) {
+		if (!(await this.isAccountLoggedOut(page))) {
 			logger.info("Account is already logged in.");
 			return;
 		}

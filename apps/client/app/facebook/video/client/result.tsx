@@ -110,8 +110,8 @@ export default function StoryDownloadResult({
 						</div>
 					</CardHeader>
 					<CardContent>
-						Successfully fetch video information, but there isn't any video 
-						in the URL you provided.
+						Successfully fetch video information, but there isn't any video in
+						the URL you provided.
 					</CardContent>
 				</Card>
 			</div>
@@ -179,10 +179,12 @@ export default function StoryDownloadResult({
 					</div>,
 				);
 			}
-			content.push(<div>
-				{vidWithAudios}
-				{vidWithoutAudios}
-			</div>)
+			content.push(
+				<div>
+					{vidWithAudios}
+					{vidWithoutAudios}
+				</div>,
+			);
 		}
 	} else {
 		const videoButtons = [];
@@ -203,9 +205,7 @@ export default function StoryDownloadResult({
 			);
 		}
 		if (videoData.video.videos.length === 0) {
-			content.push(
-				<div>The video url is probably not a video.</div>
-			);
+			content.push(<div>The video url is probably not a video.</div>);
 		} else {
 			content.push(
 				<div>
@@ -234,9 +234,7 @@ export default function StoryDownloadResult({
 					</div>
 				</CardDescription>
 			</CardHeader>
-			<CardContent>
-				{content}
-			</CardContent>
+			<CardContent>{content}</CardContent>
 			<CardFooter>
 				Like this project? Consider supporting me on Patreon or Ko-fi!
 			</CardFooter>

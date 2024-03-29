@@ -1,21 +1,19 @@
 {
-    "name": "storiee",
-    "version": "0.0.0",
-    "private": true,
-    "workspaces": [
-      "apps/*",
-      "packages/*"
-    ],
-    "scripts": {
-      "build": "turbo run build",
-      "start": "turbo run start",
-      "dev": "turbo run dev --parallel",
-      "lint": "turbo run lint",
-      "fmt": "turbo run fmt"
-    },
-    "devDependencies": {
-      "turbo": "^1.10.7"
-    },
-    "dependencies": {
-    }
+  "name": "storiee",
+  "version": "0.0.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "turbo run build",
+    "start": "turbo run start",
+    "dev": "turbo run dev --parallel",
+    "lint": "turbo run lint",
+    "fmt": "turbo run fmt"
+  },
+  "devDependencies": {
+    "turbo": "^1.13.0"
+  }
 }

@@ -1,13 +1,11 @@
 "use client";
 import { useToast } from "@/components/ui/use-toast";
 import { useRef, useState } from "react";
-import { set, z } from "zod";
 import StoryDownloadForm from "./client/form";
 import FAQ from "../faq";
 import StoryDownloadResult from "./client/result";
 
 export default function Home() {
-	const zUrl = z.string().url();
 	const [results, setResults] = useState([]);
 	const resultsRef = useRef([]);
 	resultsRef.current = results;

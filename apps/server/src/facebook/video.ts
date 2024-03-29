@@ -44,19 +44,19 @@ class FacebookVideo {
 			case "intercept": {
 				// Variables
 				const video: {
-                    videos: RemoteVideo[];
-                    audio: string | null;
-                } = {
-                    videos: [],
-                    audio: null,
-                }
+					videos: RemoteVideo[];
+					audio: string | null;
+				} = {
+					videos: [],
+					audio: null,
+				};
 
 				async function viewVideo() {
-                    logger.debug("Viewing video...");
-                    const viewVideoBtn = page.locator("[role=presentation]").first();
-                    if (viewVideoBtn) {
-                        await viewVideoBtn.click({force: true});
-                    }
+					logger.debug("Viewing video...");
+					const viewVideoBtn = page.locator("[role=presentation]").first();
+					if (viewVideoBtn) {
+						await viewVideoBtn.click({ force: true });
+					}
 				}
 
 				logger.debug("Enabling request interception...");
@@ -64,7 +64,7 @@ class FacebookVideo {
 				const videoBandwidths = {
 					data: "",
 				};
-                function getBandwidth(fileName: string): number | undefined {
+				function getBandwidth(fileName: string): number | undefined {
 					// logger.debug(`File name: ${fileName}`);
 					for (const line of videoBandwidths.data.split(";")) {
 						// logger.debug(`Line: ${line}`);
@@ -76,7 +76,7 @@ class FacebookVideo {
 						}
 					}
 				}
-                let currentHeight: number | null = null;
+				let currentHeight: number | null = null;
 				page.on("request", (interceptedRequest) => {
 					const url = new URL(interceptedRequest.url());
 					// logger.debug("Intercepting request: %s", interceptedRequest.url());
@@ -146,33 +146,46 @@ class FacebookVideo {
 				});
 
 				await page.goto(videoUrl);
-                await sleep(10);
+				await sleep(10);
 				await viewVideo();
-                // Change resolution
-                await page.locator("[aria-label=Settings]").first()?.click();
-                await sleep(10);
-                // biome-ignore lint/suspicious/noImplicitAnyLet: elm is ElementHandleForTag<"div">
-                let parentElement;
-                for (const element of await page.locator("div").all()) {
-                    if (await element.innerHTML() === "Quality") {
+				// Change resolution
+				await page.locator("[aria-label=Settings]").first()?.click();
+				await sleep(10);
+				// biome-ignore lint/suspicious/noImplicitAnyLet: elm is ElementHandleForTag<"div">
+				let parentElement;
+				for (const element of await page.locator("div").all()) {
+					if ((await element.innerHTML()) === "Quality") {
 						// Yeah exactly 5 times.
-                        parentElement = await element.evaluate((e) => e.parentElement?.parentElement?.parentElement?.parentElement?.parentElement);;
-                        await element.evaluate((e) => e.parentElement?.click());
-                        break;
-                    }
-                }
+						parentElement = await element.evaluate(
+							(e) =>
+								e.parentElement?.parentElement?.parentElement?.parentElement
+									?.parentElement,
+						);
+						await element.evaluate((e) => e.parentElement?.click());
+						break;
+					}
+				}
 				await sleep(10);
 				logger.debug(`Parent element: ${parentElement}`);
-                if (parentElement) {
+				if (parentElement) {
 					try {
-						logger.debug(`Parent element first child: ${parentElement.children[0]}`);
-						const qualityElement = parentElement.children[0].children[0].children[1];
+						logger.debug(
+							`Parent element first child: ${parentElement.children[0]}`,
+						);
+						const qualityElement =
+							parentElement.children[0].children[0].children[1];
 						logger.debug(`Quality element: ${qualityElement}`);
 						if (qualityElement) {
-							for (let i = 1; i < (qualityElement.children.length as number); i++) {
+							for (
+								let i = 1;
+								i < (qualityElement.children.length as number);
+								i++
+							) {
 								// It SHOULD work.
 								const qualityBtn = qualityElement.children[i].children[0];
-								currentHeight = parseInt(qualityBtn.children[1].innerHTML.slice(0, -1));
+								currentHeight = parseInt(
+									qualityBtn.children[1].innerHTML.slice(0, -1),
+								);
 								(qualityBtn as HTMLElement).click();
 								await sleep(10);
 							}
@@ -182,25 +195,23 @@ class FacebookVideo {
 					} catch (e) {
 						logger.warn(`Failed to change resolution: ${e}`);
 					}
-                }
+				}
 				// Cleanup
 				await page.close();
 
 				// Fix variables
-                for (const vid of video.videos) {
-                    try {
-                        const bandwidth = getBandwidth(
-                            (vid.url.split("/").pop() as string)
-                                .split("?")
-                                .shift() as string,
-                        ) as number;
-                        // logger.debug(bandwidth);
-                        vid.bandwidth = bandwidth;
-                        logger.debug(`Bandwidth: ${vid.bandwidth}`);
-                    } catch (e) {
-                        logger.error(`Failed to get bandwidth: ${e}`);
-                    }
-                }
+				for (const vid of video.videos) {
+					try {
+						const bandwidth = getBandwidth(
+							(vid.url.split("/").pop() as string).split("?").shift() as string,
+						) as number;
+						// logger.debug(bandwidth);
+						vid.bandwidth = bandwidth;
+						logger.debug(`Bandwidth: ${vid.bandwidth}`);
+					} catch (e) {
+						logger.error(`Failed to get bandwidth: ${e}`);
+					}
+				}
 				// Finally return
 				return { video };
 			}
@@ -230,7 +241,7 @@ class FacebookVideo {
 				muted: [],
 			},
 			audio: null,
-		}
+		};
 		const thumbnails: string[] = [];
 		// const document = page.mainFrame.window.document;
 		const document = dom.window.document;
@@ -255,8 +266,10 @@ class FacebookVideo {
 							logger.debug(`Index: ${i}`);
 							if (!video.videos.unified.browser_native_hd_url) {
 								video.videos.unified = {
-									browser_native_sd_url: attachments[0].media.browser_native_sd_url,
-									browser_native_hd_url: attachments[0].media.browser_native_hd_url,
+									browser_native_sd_url:
+										attachments[0].media.browser_native_sd_url,
+									browser_native_hd_url:
+										attachments[0].media.browser_native_hd_url,
 								};
 							}
 							// Parse thumbnails

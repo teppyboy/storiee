@@ -27,8 +27,8 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
-import React, { ChangeEvent, useState } from "react";
-import { CheckedState } from "@radix-ui/react-checkbox";
+import React, { type ChangeEvent, useState } from "react";
+import type { CheckedState } from "@radix-ui/react-checkbox";
 
 export default function StoryDownloadForm({ onDownloadClicked }) {
 	const [videoUrl, setvideoUrl] = useState("");
