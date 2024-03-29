@@ -1,5 +1,5 @@
 import * as fs from "node:fs";
-import { Browser, BrowserContext, Page, chromium, devices } from "playwright";
+import { type Browser, type BrowserContext, type Page, chromium, devices } from "playwright";
 import logger from "../logger.js";
 import { sleep } from "../utils.js";
 import FacebookStory from "./story.js";

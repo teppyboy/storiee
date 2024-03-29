@@ -75,7 +75,7 @@ if (facebook.contexts.length > 0) {
 // Let the browser start up
 await sleep(1000);
 
-const port = parseInt(process.env.SERVER_PORT as string) || 8080;
+const port = Number.parseInt(process.env.SERVER_PORT as string) || 8080;
 const host = process.env.SERVER_HOST || "127.0.0.1";
 
 logger.info("Starting server...");

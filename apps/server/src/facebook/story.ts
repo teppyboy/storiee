@@ -2,7 +2,7 @@ import { JSDOM } from "jsdom";
 import logger from "../logger.js";
 import { findValue, getValue, getValueAll, sleep } from "../utils.js";
 import { RemoteVideo } from "./classes.js";
-import Facebook from "./index.js";
+import type Facebook from "./index.js";
 
 class FacebookStory {
 	#facebook: Facebook;
@@ -120,7 +120,7 @@ class FacebookStory {
 						// logger.debug(`Key: ${key}`);
 						// logger.debug(`Value: ${value}`);
 						if (key === fileName) {
-							return parseInt(value);
+							return Number.parseInt(value);
 						}
 					}
 				}
@@ -130,7 +130,7 @@ class FacebookStory {
 					if (url.pathname.endsWith(".mp4")) {
 						url.searchParams.delete("bytestart");
 						const fileName = url.pathname.split("/").pop() as string;
-						const byteEnd = parseInt(url.searchParams.get("byteend") as string);
+						const byteEnd = Number.parseInt(url.searchParams.get("byteend") as string);
 						logger.debug(`Byte end: ${byteEnd}`);
 						const currentBandwidth = getBandwidth(fileName);
 						if (!currentBandwidth) {
@@ -162,7 +162,7 @@ class FacebookStory {
 							// In mobile we do 720x1280 instead of 1280x720 most of the time.
 							// The format is {"vencode_tag":"dash_vp9-basic-gen2_720p"}
 							try {
-								width = parseInt(
+								width = Number.parseInt(
 									(
 										(efgJson.vencode_tag.split("_") as string[]).pop() as string
 									).split("p")[0],

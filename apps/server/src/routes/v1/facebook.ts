@@ -24,18 +24,22 @@ export const facebook: Elysia = new Elysia()
 			}),
 		},
 	)
+	// Workaround for CORS preflight request
+	// See https://github.com/elysiajs/elysia-cors/issues/48
+	.options("/facebook/story/html", async ({ set, request }) => {
+		set.headers["Access-Control-Allow-Headers"] =
+		  request.headers.get("Access-Control-Request-Headers") ?? ""
+	})
 	.post(
 		"/facebook/story/html",
 		({ body }) => {
 			return {
 				message: "OK",
-				data: fb.story.getVideosAndAudioUrlsFromHTML(atob(body.html)),
+				data: fb.story.getVideosAndAudioUrlsFromHTML(atob(body)),
 			};
 		},
 		{
-			body: t.Object({
-				html: t.String(),
-			}),
+			body: t.String(),
 		},
 	)
 	.get(
