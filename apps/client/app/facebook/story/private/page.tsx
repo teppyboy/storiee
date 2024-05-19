@@ -1,9 +1,9 @@
 "use client";
 import { useToast } from "@/components/ui/use-toast";
 import { useRef, useState } from "react";
-import StoryDownloadForm from "./client/form";
+import StoryDownloadForm from "./form";
 import FAQ from "../faq";
-import StoryDownloadResult from "./client/result";
+import StoryDownloadResult from "./result";
 
 export default function Home() {
 	const [results, setResults] = useState([]);

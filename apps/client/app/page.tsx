@@ -2,9 +2,9 @@
 import { useToast } from "@/components/ui/use-toast";
 import { useRef, useState } from "react";
 import { set, z } from "zod";
-import StoryDownloadForm from "./facebook/story/client/form";
+import StoryDownloadForm from "./facebook/story/form";
 import FAQ from "./facebook/story/faq";
-import StoryDownloadResult from "./facebook/story/client/result";
+import StoryDownloadResult from "./facebook/story/result";
 
 export default function Home() {
 	const zUrl = z.string().url();
