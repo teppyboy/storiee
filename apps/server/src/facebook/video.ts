@@ -13,10 +13,12 @@ class FacebookVideo {
 		const page = await this.#facebook.getPage();
 		// Variables
 		const video: {
-			unified: undefined | {
-				browser_native_sd_url: string;
-				browser_native_hd_url: string;
-			},
+			unified:
+				| undefined
+				| {
+						browser_native_sd_url: string;
+						browser_native_hd_url: string;
+				  };
 			muted: RemoteVideo[];
 			audio: string | null;
 		} = {
@@ -78,9 +80,7 @@ class FacebookVideo {
 					"base64",
 				).toString("utf-8");
 				const isVideo =
-					efg.includes("video") ||
-					efg.includes("vp9") ||
-					efg.includes("avc");
+					efg.includes("video") || efg.includes("vp9") || efg.includes("avc");
 				const isAudio = efg.includes("audio");
 				let width = 0;
 				let height = 0;
@@ -150,11 +150,7 @@ class FacebookVideo {
 					parentElement.children[0].children[0].children[1];
 				logger.debug(`Quality element: ${qualityElement}`);
 				if (qualityElement) {
-					for (
-						let i = 1;
-						i < (qualityElement.children.length as number);
-						i++
-					) {
+					for (let i = 1; i < (qualityElement.children.length as number); i++) {
 						// It SHOULD work.
 						const qualityBtn = qualityElement.children[i].children[0];
 						currentHeight = parseInt(
@@ -188,13 +184,13 @@ class FacebookVideo {
 		}
 		// Finally return
 		return { video };
-	} 
+	}
 	/**
 	 * Gets the video information from the URL.
 	 *
 	 * There are two methods here:
-	 * 1. `html` - HTML parsing: This method is faster and more reliable as 
-	 * it can produce better results such as video with audio URLs and also the video resolution. 
+	 * 1. `html` - HTML parsing: This method is faster and more reliable as
+	 * it can produce better results such as video with audio URLs and also the video resolution.
 	 * A major drawback is that it may break in the future if Facebook changes their JSON structure.
 	 *
 	 * 2. `intercept` - Request interception: This method is slower but more reliable because
@@ -207,15 +203,20 @@ class FacebookVideo {
 	 * @param method
 	 * @returns object
 	 */
-	async getVideoInfo(url: string, method = "html"): Promise<{
+	async getVideoInfo(
+		url: string,
+		method = "html",
+	): Promise<{
 		video: {
-			unified: undefined | {
-                browser_native_sd_url: string;
-                browser_native_hd_url: string;
-            },
-			muted: RemoteVideo[],
+			unified:
+				| undefined
+				| {
+						browser_native_sd_url: string;
+						browser_native_hd_url: string;
+				  };
+			muted: RemoteVideo[];
 			audio: string | null;
-		},
+		};
 	}> {
 		logger.debug("Video URL: %s", url);
 		switch (method) {

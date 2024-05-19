@@ -11,10 +11,7 @@ export const facebook: Elysia = new Elysia()
 			}
 			return {
 				message: "OK",
-				data: await fb.story.getStoryInfo(
-					decodedUrl,
-					query.method,
-				),
+				data: await fb.story.getStoryInfo(decodedUrl, query.method),
 			};
 		},
 		{
@@ -55,10 +52,7 @@ export const facebook: Elysia = new Elysia()
 			}
 			return {
 				message: "OK",
-				data: await fb.video.getVideoInfo(
-					decodedUrl,
-					query.method,
-				),
+				data: await fb.video.getVideoInfo(decodedUrl, query.method),
 			};
 		},
 		{

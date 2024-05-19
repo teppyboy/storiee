@@ -15,7 +15,7 @@ const api = new Elysia({ prefix: "/api" })
 				set.status = 500;
 				return {
 					error: error.message,
-					code: null,
+					code: 500,
 					message: "An internal server error occurred",
 				};
 		}

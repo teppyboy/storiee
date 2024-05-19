@@ -15,10 +15,12 @@ class FacebookStory {
 		let storyCount = 1;
 		const stories: [
 			{
-				unified: {
-					browser_native_sd_url: string;
-					browser_native_hd_url: string;
-				} | undefined; 
+				unified:
+					| {
+							browser_native_sd_url: string;
+							browser_native_hd_url: string;
+					  }
+					| undefined;
 				muted: RemoteVideo[];
 				audio: string | null;
 			},
@@ -128,9 +130,7 @@ class FacebookStory {
 					"base64",
 				).toString("utf-8");
 				const isVideo =
-					efg.includes("video") ||
-					efg.includes("vp9") ||
-					efg.includes("avc");
+					efg.includes("video") || efg.includes("vp9") || efg.includes("avc");
 				const isAudio = efg.includes("audio");
 				let width = 0;
 				let height = 0;
@@ -256,9 +256,7 @@ class FacebookStory {
 			for (const video of story.muted) {
 				try {
 					const bandwidth = getBandwidth(
-						(video.url.split("/").pop() as string)
-							.split("?")
-							.shift() as string,
+						(video.url.split("/").pop() as string).split("?").shift() as string,
 					) as number;
 					// logger.debug(bandwidth);
 					video.bandwidth = bandwidth;
@@ -275,8 +273,8 @@ class FacebookStory {
 	 * Gets the Facebook story information.
 	 *
 	 * There are two methods here:
-	 * 1. `html` - HTML parsing: This method is faster and more reliable as 
-	 * it can produce better results such as video with audio URLs and also the video resolution. 
+	 * 1. `html` - HTML parsing: This method is faster and more reliable as
+	 * it can produce better results such as video with audio URLs and also the video resolution.
 	 * A major drawback is that it may break in the future if Facebook changes their JSON structure.
 	 *
 	 * 2. `intercept` - Request interception: This method is slower but more reliable because
@@ -289,12 +287,17 @@ class FacebookStory {
 	 * @param method
 	 * @returns
 	 */
-	async getStoryInfo(url: string, method = "html"): Promise<{
+	async getStoryInfo(
+		url: string,
+		method = "html",
+	): Promise<{
 		stories: {
-			unified: {
-				browser_native_sd_url: string;
-				browser_native_hd_url: string;
-			} | undefined;
+			unified:
+				| {
+						browser_native_sd_url: string;
+						browser_native_hd_url: string;
+				  }
+				| undefined;
 			muted: RemoteVideo[];
 			audio: string | null;
 		}[];
