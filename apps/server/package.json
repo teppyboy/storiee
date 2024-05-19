@@ -1,24 +1,23 @@
 {
   "name": "storiee-server",
   "version": "1.0.0",
-  "description": "Storiee server",
+  "description": "The backend server for Storiee.",
   "main": "src/index.ts",
   "types": "src/index.ts",
   "type": "module",
   "scripts": {
-    "build": "swc src --out-dir dist",
+    "build": "bunx swc src --out-dir dist",
     "start": "node dist/index.js",
-    "fmt": "npx @biomejs/biome check --apply ./src",
+    "fmt": "bunx @biomejs/biome check --apply ./src",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "tsx watch src/index.ts",
-    "dev-norefresh": "tsx src/index.ts"
+    "watch": "bunx tsx --watch src/index.ts",
+    "dev": "bunx tsx src/index.ts"
   },
   "keywords": [],
-  "author": "",
+  "author": "tretrauit",
   "license": "AGPL-3.0-or-later",
   "devDependencies": {
     "@biomejs/biome": "1.5.3",
-    "@swc-node/register": "^1.8.0",
     "@types/jsdom": "^21.1.6",
     "pino-pretty": "^10.3.1",
     "tsx": "^4.7.1",
@@ -26,11 +25,16 @@
   },
   "dependencies": {
     "@bogeychan/elysia-polyfills": "^0.6.4",
-    "@elysiajs/cors": "^0.8.0",
+    "@elysiajs/cors": "^1.0.2",
     "@sinclair/typebox": "^0.32.14",
-    "elysia": "^0.8.17",
+    "electron": "^30.0.6",
+    "elysia": "^1.0.20",
     "jsdom": "^24.0.0",
     "pino": "^8.18.0",
-    "playwright": "^1.41.2"
-  }
+    "playwright": "^1.44.0"
+  },
+  "trustedDependencies": [
+    "@biomejs/biome",
+    "electron"
+  ]
 }

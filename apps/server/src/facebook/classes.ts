@@ -1,3 +1,12 @@
+class Account {
+	email: string;
+	password: string;
+	constructor(email: string, password: string) {
+		this.email = email;
+		this.password = password;
+	}
+}
+
 class RemoteVideo {
 	url: string;
 	width: number;
@@ -22,4 +31,4 @@ class RemoteVideo {
 	}
 }
 
-export { RemoteVideo };
+export { RemoteVideo, Account };

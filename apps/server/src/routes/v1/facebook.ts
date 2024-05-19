@@ -5,10 +5,14 @@ export const facebook: Elysia = new Elysia()
 	.get(
 		"/facebook/story/url/:url",
 		async ({ query, params: url }) => {
+			let decodedUrl = decodeURIComponent(url.url);
+			if (decodedUrl.startsWith("https:%2F%2Fwww.facebook.com")) {
+				decodedUrl = decodeURIComponent(decodedUrl);
+			}
 			return {
 				message: "OK",
-				data: await fb.story.getVideosAndAudioUrls(
-					decodeURIComponent(url.url),
+				data: await fb.story.getStoryInfo(
+					decodedUrl,
 					query.method,
 				),
 			};
@@ -35,7 +39,7 @@ export const facebook: Elysia = new Elysia()
 		({ body }) => {
 			return {
 				message: "OK",
-				data: fb.story.getVideosAndAudioUrlsFromHTML(atob(body)),
+				data: fb.story.getStoryInfoFromHTML(atob(body)),
 			};
 		},
 		{
@@ -45,10 +49,14 @@ export const facebook: Elysia = new Elysia()
 	.get(
 		"/facebook/video/url/:url",
 		async ({ query, params: url }) => {
+			let decodedUrl = decodeURIComponent(url.url);
+			if (decodedUrl.startsWith("https:%2F%2Fwww.facebook.com")) {
+				decodedUrl = decodeURIComponent(decodedUrl);
+			}
 			return {
 				message: "OK",
-				data: await fb.video.getVideosAndAudioUrls(
-					decodeURIComponent(url.url),
+				data: await fb.video.getVideoInfo(
+					decodedUrl,
 					query.method,
 				),
 			};

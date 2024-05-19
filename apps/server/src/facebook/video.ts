@@ -9,237 +9,247 @@ class FacebookVideo {
 	constructor(facebook: Facebook) {
 		this.#facebook = facebook;
 	}
+	async getVideoInfoByIntercept(url: string) {
+		const page = await this.#facebook.getPage();
+		// Variables
+		const video: {
+			unified: undefined | {
+				browser_native_sd_url: string;
+				browser_native_hd_url: string;
+			},
+			muted: RemoteVideo[];
+			audio: string | null;
+		} = {
+			unified: undefined,
+			muted: [],
+			audio: null,
+		};
+
+		async function viewVideo() {
+			logger.debug("Viewing video...");
+			const viewVideoBtn = page.locator("[role=presentation]").first();
+			if (viewVideoBtn) {
+				await viewVideoBtn.click({ force: true });
+			}
+		}
+
+		logger.debug("Enabling request interception...");
+		// Fix TypeScript being annoying
+		const videoBandwidths = {
+			data: "",
+		};
+		function getBandwidth(fileName: string): number | undefined {
+			// logger.debug(`File name: ${fileName}`);
+			for (const line of videoBandwidths.data.split(";")) {
+				// logger.debug(`Line: ${line}`);
+				const [key, value] = line.split("=", 2);
+				// logger.debug(`Key: ${key}`);
+				// logger.debug(`Value: ${value}`);
+				if (key === fileName) {
+					return parseInt(value);
+				}
+			}
+		}
+		let currentHeight: number | null = null;
+		page.on("request", (interceptedRequest) => {
+			const url = new URL(interceptedRequest.url());
+			// logger.debug("Intercepting request: %s", interceptedRequest.url());
+			if (url.pathname.endsWith(".mp4")) {
+				url.searchParams.delete("bytestart");
+				const fileName = url.pathname.split("/").pop() as string;
+				const byteEnd = parseInt(url.searchParams.get("byteend") as string);
+				logger.debug(`Byte end: ${byteEnd}`);
+				const currentBandwidth = getBandwidth(fileName);
+				if (!currentBandwidth) {
+					videoBandwidths.data += `${fileName}=${byteEnd};`;
+				} else {
+					if (byteEnd > currentBandwidth) {
+						videoBandwidths.data = videoBandwidths.data.replace(
+							`${fileName}=${currentBandwidth};`,
+							`${fileName}=${byteEnd};`,
+						);
+					}
+				}
+				logger.debug(`Bandwidth: ${currentBandwidth}`);
+				url.searchParams.delete("byteend");
+				// It will not be null
+				const efg = Buffer.from(
+					url.searchParams.get("efg") as string,
+					"base64",
+				).toString("utf-8");
+				const isVideo =
+					efg.includes("video") ||
+					efg.includes("vp9") ||
+					efg.includes("avc");
+				const isAudio = efg.includes("audio");
+				let width = 0;
+				let height = 0;
+				const efgJson = JSON.parse(efg);
+				if (efgJson.vencode_tag.endsWith("p")) {
+					// In mobile we do 720x1280 instead of 1280x720 most of the time.
+					// The format is {"vencode_tag":"dash_vp9-basic-gen2_720p"}
+					try {
+						width = parseInt(
+							(
+								(efgJson.vencode_tag.split("_") as string[]).pop() as string
+							).split("p")[0],
+						);
+						height = (width / 9) * 16;
+					} catch (e) {
+						logger.warn(`Failed to parse width and height: ${e}`);
+						if (currentHeight) {
+							height = currentHeight;
+							width = (height / 16) * 9;
+						}
+					}
+				}
+				logger.debug(`EFG: ${efg}`);
+				logger.debug(`Is video: ${isVideo}`);
+				logger.debug(`Is audio: ${isAudio}`);
+				const urlStr = url.toString();
+				if (!findValue(video, urlStr)) {
+					if (isVideo) {
+						video.muted.push(
+							new RemoteVideo(urlStr, width, height, 0, false, null),
+						);
+					} else if (isAudio) {
+						video.audio = urlStr;
+					}
+				}
+			}
+		});
+
+		await page.goto(url);
+		await sleep(10);
+		await viewVideo();
+		// Change resolution
+		await page.locator("[aria-label=Settings]").first()?.click();
+		await sleep(10);
+		// biome-ignore lint/suspicious/noImplicitAnyLet: elm is ElementHandleForTag<"div">
+		let parentElement;
+		for (const element of await page.locator("div").all()) {
+			if ((await element.innerHTML()) === "Quality") {
+				// Yeah exactly 5 times.
+				parentElement = await element.evaluate(
+					(e) =>
+						e.parentElement?.parentElement?.parentElement?.parentElement
+							?.parentElement,
+				);
+				await element.evaluate((e) => e.parentElement?.click());
+				break;
+			}
+		}
+		await sleep(10);
+		logger.debug(`Parent element: ${parentElement}`);
+		if (parentElement) {
+			try {
+				logger.debug(
+					`Parent element first child: ${parentElement.children[0]}`,
+				);
+				const qualityElement =
+					parentElement.children[0].children[0].children[1];
+				logger.debug(`Quality element: ${qualityElement}`);
+				if (qualityElement) {
+					for (
+						let i = 1;
+						i < (qualityElement.children.length as number);
+						i++
+					) {
+						// It SHOULD work.
+						const qualityBtn = qualityElement.children[i].children[0];
+						currentHeight = parseInt(
+							qualityBtn.children[1].innerHTML.slice(0, -1),
+						);
+						(qualityBtn as HTMLElement).click();
+						await sleep(10);
+					}
+				} else {
+					logger.warn("Failed to get quality element.");
+				}
+			} catch (e) {
+				logger.warn(`Failed to change resolution: ${e}`);
+			}
+		}
+		// Cleanup
+		await page.close();
+
+		// Fix variables
+		for (const vid of video.muted) {
+			try {
+				const bandwidth = getBandwidth(
+					(vid.url.split("/").pop() as string).split("?").shift() as string,
+				) as number;
+				// logger.debug(bandwidth);
+				vid.bandwidth = bandwidth;
+				logger.debug(`Bandwidth: ${vid.bandwidth}`);
+			} catch (e) {
+				logger.error(`Failed to get bandwidth: ${e}`);
+			}
+		}
+		// Finally return
+		return { video };
+	} 
 	/**
-	 * Gets the video and audio URLs from a Facebook story.
+	 * Gets the video information from the URL.
 	 *
-	 * There are two methods to get the video and audio URLs:
-	 * 1. `html` - HTML parsing: This method is faster and more reliable as it can produce
-	 * better results such as video with audio URLs and also the video resolution. But it
-	 * may break in the future if Facebook changes their JSON structure.
+	 * There are two methods here:
+	 * 1. `html` - HTML parsing: This method is faster and more reliable as 
+	 * it can produce better results such as video with audio URLs and also the video resolution. 
+	 * A major drawback is that it may break in the future if Facebook changes their JSON structure.
 	 *
 	 * 2. `intercept` - Request interception: This method is slower but more reliable because
 	 * it doesn't depend on the JSON structure entirely (it still does slightly for extra
 	 * information such as video resolution). But beware that results may not be as good as
-	 * the `html` method.
+	 * the `html` method, and this method doesn't work with Chromium (due to the lack of video
+	 * codecs)
 	 *
 	 * @param url
 	 * @param method
-	 * @returns
+	 * @returns object
 	 */
-	async getVideosAndAudioUrls(url: string, method = "html") {
-		const page = await this.#facebook.getPage();
+	async getVideoInfo(url: string, method = "html"): Promise<{
+		video: {
+			unified: undefined | {
+                browser_native_sd_url: string;
+                browser_native_hd_url: string;
+            },
+			muted: RemoteVideo[],
+			audio: string | null;
+		},
+	}> {
 		logger.debug("Video URL: %s", url);
-		let videoUrl = url;
-		if (videoUrl.startsWith("https:%2F%2Fwww.facebook.com")) {
-			// The url is still encoded somehow.
-			videoUrl = decodeURIComponent(url);
-		}
 		switch (method) {
 			case "html": {
-				await page.goto(videoUrl);
+				const page = await this.#facebook.getPage();
+				await page.goto(url);
 				const source = await page.content();
 				await page.close();
-				return this.getVideosAndAudioUrlsFromHTML(source);
+				return this.getVideoInfoFromHTML(source);
 			}
 			case "intercept": {
-				// Variables
-				const video: {
-					videos: RemoteVideo[];
-					audio: string | null;
-				} = {
-					videos: [],
-					audio: null,
-				};
-
-				async function viewVideo() {
-					logger.debug("Viewing video...");
-					const viewVideoBtn = page.locator("[role=presentation]").first();
-					if (viewVideoBtn) {
-						await viewVideoBtn.click({ force: true });
-					}
-				}
-
-				logger.debug("Enabling request interception...");
-				// Fix TypeScript being annoying
-				const videoBandwidths = {
-					data: "",
-				};
-				function getBandwidth(fileName: string): number | undefined {
-					// logger.debug(`File name: ${fileName}`);
-					for (const line of videoBandwidths.data.split(";")) {
-						// logger.debug(`Line: ${line}`);
-						const [key, value] = line.split("=", 2);
-						// logger.debug(`Key: ${key}`);
-						// logger.debug(`Value: ${value}`);
-						if (key === fileName) {
-							return parseInt(value);
-						}
-					}
-				}
-				let currentHeight: number | null = null;
-				page.on("request", (interceptedRequest) => {
-					const url = new URL(interceptedRequest.url());
-					// logger.debug("Intercepting request: %s", interceptedRequest.url());
-					if (url.pathname.endsWith(".mp4")) {
-						url.searchParams.delete("bytestart");
-						const fileName = url.pathname.split("/").pop() as string;
-						const byteEnd = parseInt(url.searchParams.get("byteend") as string);
-						logger.debug(`Byte end: ${byteEnd}`);
-						const currentBandwidth = getBandwidth(fileName);
-						if (!currentBandwidth) {
-							videoBandwidths.data += `${fileName}=${byteEnd};`;
-						} else {
-							if (byteEnd > currentBandwidth) {
-								videoBandwidths.data = videoBandwidths.data.replace(
-									`${fileName}=${currentBandwidth};`,
-									`${fileName}=${byteEnd};`,
-								);
-							}
-						}
-						logger.debug(`Bandwidth: ${currentBandwidth}`);
-						url.searchParams.delete("byteend");
-						// It will not be null
-						const efg = Buffer.from(
-							url.searchParams.get("efg") as string,
-							"base64",
-						).toString("utf-8");
-						const isVideo =
-							efg.includes("video") ||
-							efg.includes("vp9") ||
-							efg.includes("avc");
-						const isAudio = efg.includes("audio");
-						let width = 0;
-						let height = 0;
-						const efgJson = JSON.parse(efg);
-						if (efgJson.vencode_tag.endsWith("p")) {
-							// In mobile we do 720x1280 instead of 1280x720 most of the time.
-							// The format is {"vencode_tag":"dash_vp9-basic-gen2_720p"}
-							try {
-								width = parseInt(
-									(
-										(efgJson.vencode_tag.split("_") as string[]).pop() as string
-									).split("p")[0],
-								);
-								height = (width / 9) * 16;
-							} catch (e) {
-								logger.warn(`Failed to parse width and height: ${e}`);
-								if (currentHeight) {
-									height = currentHeight;
-									width = (height / 16) * 9;
-								}
-							}
-						}
-						logger.debug(`EFG: ${efg}`);
-						logger.debug(`Is video: ${isVideo}`);
-						logger.debug(`Is audio: ${isAudio}`);
-						const urlStr = url.toString();
-						if (!findValue(video, urlStr)) {
-							if (isVideo) {
-								video.videos.push(
-									new RemoteVideo(urlStr, width, height, 0, false, null),
-								);
-							} else if (isAudio) {
-								video.audio = urlStr;
-							}
-						}
-					}
-				});
-
-				await page.goto(videoUrl);
-				await sleep(10);
-				await viewVideo();
-				// Change resolution
-				await page.locator("[aria-label=Settings]").first()?.click();
-				await sleep(10);
-				// biome-ignore lint/suspicious/noImplicitAnyLet: elm is ElementHandleForTag<"div">
-				let parentElement;
-				for (const element of await page.locator("div").all()) {
-					if ((await element.innerHTML()) === "Quality") {
-						// Yeah exactly 5 times.
-						parentElement = await element.evaluate(
-							(e) =>
-								e.parentElement?.parentElement?.parentElement?.parentElement
-									?.parentElement,
-						);
-						await element.evaluate((e) => e.parentElement?.click());
-						break;
-					}
-				}
-				await sleep(10);
-				logger.debug(`Parent element: ${parentElement}`);
-				if (parentElement) {
-					try {
-						logger.debug(
-							`Parent element first child: ${parentElement.children[0]}`,
-						);
-						const qualityElement =
-							parentElement.children[0].children[0].children[1];
-						logger.debug(`Quality element: ${qualityElement}`);
-						if (qualityElement) {
-							for (
-								let i = 1;
-								i < (qualityElement.children.length as number);
-								i++
-							) {
-								// It SHOULD work.
-								const qualityBtn = qualityElement.children[i].children[0];
-								currentHeight = parseInt(
-									qualityBtn.children[1].innerHTML.slice(0, -1),
-								);
-								(qualityBtn as HTMLElement).click();
-								await sleep(10);
-							}
-						} else {
-							logger.warn("Failed to get quality element.");
-						}
-					} catch (e) {
-						logger.warn(`Failed to change resolution: ${e}`);
-					}
-				}
-				// Cleanup
-				await page.close();
-
-				// Fix variables
-				for (const vid of video.videos) {
-					try {
-						const bandwidth = getBandwidth(
-							(vid.url.split("/").pop() as string).split("?").shift() as string,
-						) as number;
-						// logger.debug(bandwidth);
-						vid.bandwidth = bandwidth;
-						logger.debug(`Bandwidth: ${vid.bandwidth}`);
-					} catch (e) {
-						logger.error(`Failed to get bandwidth: ${e}`);
-					}
-				}
-				// Finally return
-				return { video };
+				return await this.getVideoInfoByIntercept(url);
 			}
 			default:
 				throw new Error("Invalid method.");
 		}
 	}
-	getVideosAndAudioUrlsFromHTML(source: string) {
+	getVideoInfoFromHTML(source: string) {
 		const dom = new JSDOM(source, {
-			runScripts: "dangerously",
+			runScripts: "outside-only",
 		});
 		const video: {
-			videos: {
-				unified: {
-					browser_native_sd_url: string;
-					browser_native_hd_url: string;
-				};
-				muted: RemoteVideo[];
+			unified: {
+				browser_native_sd_url: string;
+				browser_native_hd_url: string;
 			};
+			muted: RemoteVideo[];
 			audio: string | null;
 		} = {
-			videos: {
-				unified: {
-					browser_native_sd_url: "",
-					browser_native_hd_url: "",
-				},
-				muted: [],
+			unified: {
+				browser_native_sd_url: "",
+				browser_native_hd_url: "",
 			},
+			muted: [],
 			audio: null,
 		};
 		const thumbnails: string[] = [];
@@ -264,8 +274,8 @@ class FacebookVideo {
 						logger.debug("Attachment URL: %s", attachments[0].url);
 						if (attachments[0].url === undefined) {
 							logger.debug(`Index: ${i}`);
-							if (!video.videos.unified.browser_native_hd_url) {
-								video.videos.unified = {
+							if (!video.unified.browser_native_hd_url) {
+								video.unified = {
 									browser_native_sd_url:
 										attachments[0].media.browser_native_sd_url,
 									browser_native_hd_url:
@@ -283,7 +293,7 @@ class FacebookVideo {
 					}
 				}
 				// Parse segmented stories (videos without audio, audio)
-				// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+				// biome-ignore lint/suspicious/noExplicitAny: An object here
 				const videoDashes: any = getValue(
 					data,
 					"all_video_dash_prefetch_representations",
@@ -304,7 +314,7 @@ class FacebookVideo {
 									false,
 									thumbnails[i] || null,
 								);
-								video.videos.muted.push(vid);
+								video.muted.push(vid);
 							} else {
 								video.audio = representation.base_url;
 							}
@@ -318,12 +328,12 @@ class FacebookVideo {
 		}
 		// Deduplicate
 		const newMutedVideos: RemoteVideo[] = [];
-		for (const vid of video.videos.muted) {
+		for (const vid of video.muted) {
 			if (!findValue(newMutedVideos, vid.url)) {
 				newMutedVideos.push(vid);
 			}
 		}
-		video.videos.muted = newMutedVideos;
+		video.muted = newMutedVideos;
 		return { video };
 	}
 }

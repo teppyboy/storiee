@@ -9,10 +9,10 @@
   "keywords": [],
   "author": "tretrauit",
   "dependencies": {
-    "@elysiajs/eden": "^0.8.1"
+    "@elysiajs/eden": "^1.0.13"
   },
   "devDependencies": {
-    "elysia": "^0.8.17",
+    "elysia": "^1.0.20",
     "server": "*"
   }
 }

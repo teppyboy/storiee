@@ -9,7 +9,9 @@ import logger from "./logger.js";
 import api from "./routes/index.js";
 import { sleep } from "./utils.js";
 
-console.log(`Storiee Server - v${constants.VERSION}`);
+console.log(
+	`Storiee (server) v${constants.VERSION} - https://github.com/teppyboy/storiee`,
+);
 const facebook = new Facebook();
 
 // Create a data directory if it doesn't exist
@@ -29,7 +31,7 @@ for (const [i, arg] of process.argv.entries()) {
 		// biome-ignore lint/suspicious/noFallthroughSwitchClause: process.exit(0)
 		case "relogin-account":
 			try {
-				await facebook.reloginAccount(process.argv[i + 1]);
+				await facebook.reloginAccountHeadful(process.argv[i + 1]);
 			} catch (e) {
 				logger.error(`Failed to re-login account: ${e}`);
 				process.exit(1);
@@ -48,26 +50,29 @@ for (const [i, arg] of process.argv.entries()) {
 
 logger.info("Initializing components...");
 const browserChannel = process.env.BROWSER_CHANNEL || "chrome";
-logger.info(`Initializing browser (channel: ${browserChannel})...`);
+const browserHeadless = process.env.HEADLESS !== "false" ? true : false;
+logger.info(
+	`Initializing browser (channel: ${browserChannel}) (headless: ${browserHeadless})...`,
+);
 // Launch the browser and open a new blank page
 const browser = await chromium.launch({
-	headless: process.env.HEADLESS !== "false" ? true : false,
+	headless: browserHeadless,
 	channel: browserChannel,
 });
-
 facebook.setBrowser(browser);
+
 // Load cookies
 logger.info("Loading cookies...");
 await facebook.loadCookies();
 if (facebook.contexts.length > 0) {
-	logger.info(`Loaded ${facebook.contexts.length} instances`);
+	logger.info(`Loaded ${facebook.contexts.length} instances.`);
 } else {
 	logger.error("No instances loaded.");
 	logger.error(
-		"Please login to your account to load cookies with the 'add-account' command",
+		"Please login to your account to load cookies with the 'add-account' command.",
 	);
 	logger.error(
-		"Keep in mind using 'add-account' will require you to run Chrome without headless mode",
+		"Keep in mind using 'add-account' will require you to run the browser without headless mode.",
 	);
 	process.exit(1);
 }
@@ -90,7 +95,9 @@ app.listen(
 	},
 );
 
-// For our server.
 export { facebook };
 
+// For our server and Next.js
 export type App = typeof app;
+export const GET = app.handle;
+export const POST = app.handle;
