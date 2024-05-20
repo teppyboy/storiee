@@ -14,7 +14,7 @@ import { DownloadMethodAlert } from "@/components/storiee/download-method-alert"
 import Link from "next/link";
 import { CardDownloadForm } from "@/components/storiee/card-download-form";
 
-export default function StoryDownloadForm({ onDownloadClicked }) {
+export default function VideoDownloadForm({ onDownloadClicked }) {
 	const [downloadMethod, setDownloadMethod] = useState("html");
 	const [acceptToS, setAcceptToS] = useState(false);
 	function handleDownloadMethodChange(option: string) {
@@ -34,17 +34,17 @@ export default function StoryDownloadForm({ onDownloadClicked }) {
 	const content = (
 		<>
 			<div className="text-sm text-muted-foreground my-2">
-				<Link href="/facebook/story/private">
-					<u>Interested in downloading private stories? Click here :)</u>
+				<Link href="/facebook/video/private">
+					<u>Interested in downloading private videos? Click here :)</u>
 				</Link>
 			</div>
 			<div className="grid w-full items-center gap-4">
 				<div className="flex flex-col space-y-1.5">
-					<Label htmlFor="url">Story URL</Label>
+					<Label htmlFor="url">Video URL</Label>
 					<Input
 						type="url"
 						name="url"
-						placeholder="URL of the story you want to download"
+						placeholder="URL of the video you want to download"
 					/>
 				</div>
 				<div className="flex flex-col space-y-1.5">
@@ -83,8 +83,8 @@ export default function StoryDownloadForm({ onDownloadClicked }) {
 	);
 	return (
 		<CardDownloadForm
-			title="Story Downloader"
-			description="Easily download any public Facebook stories."
+			title="Video Downloader"
+			description="Easily download any public Facebook videos."
 			content={content}
 			onSubmit={onSubmit}
 		/>

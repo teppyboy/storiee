@@ -1,30 +1,21 @@
 "use client";
-import { StoryResult } from "@/components/storiee/story-result";
+import { VideoResult } from "@/components/storiee/video-result";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import useSWR from "swr";
 
-// biome-ignore lint/suspicious/noExplicitAny: Plain fetch so any is fine
-const fetcher = (...args: any[]) => fetch(...args).then((res) => res.json());
-
-type StoryDownloadResultProps = {
-	storyUrl: string;
-	method: string;
-	removeResult: () => void;
-};
-
-export default function StoryDownloadResult({
-	storyUrl,
-	method,
-	removeResult,
-}: StoryDownloadResultProps) {
+export default function VideoDownloadResult({ storyHtml, removeResult }) {
 	// Smartest way to handle the download :nerd:
-	console.log("Downloading story", storyUrl, method);
+	console.log("Parsing story HTML...");
 	const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8080";
+	// biome-ignore lint/suspicious/noExplicitAny: it's just a fetch so any is fine
+	const fetcher = (...args: any[]) =>
+		fetch(...args, {
+			method: "POST",
+			body: btoa(storyHtml),
+		}).then((r) => r.json());
 	const { data, error, isLoading } = useSWR(
-		`${apiUrl}/api/v1/facebook/story/url/${encodeURIComponent(
-			storyUrl,
-		)}?method=${method}`,
+		`${apiUrl}/api/v1/facebook/video/html`,
 		fetcher,
 	);
 	function handleRemoveResult() {
@@ -53,7 +44,7 @@ export default function StoryDownloadResult({
 						{removeResultButton}
 					</div>
 				</CardHeader>
-				<CardContent>Failed to download story information.</CardContent>
+				<CardContent>Failed to download video information.</CardContent>
 			</Card>
 		);
 	}
@@ -61,20 +52,18 @@ export default function StoryDownloadResult({
 		return (
 			<Card className="w mt-4">
 				<CardHeader>
-					<CardTitle>Downloading...</CardTitle>
+					<CardTitle>Parsing...</CardTitle>
 				</CardHeader>
 				<CardContent className="text-opacity-80">
 					The process will take a few seconds, please wait.
-					<br />
-					If you are using "Intercept" method then it'll take a bit longer.
 				</CardContent>
 			</Card>
 		);
 	}
 	return (
-		<StoryResult
+		<VideoResult
 			data={data}
-			storyUrl={storyUrl}
+			videoUrl={undefined}
 			removeResultButton={removeResultButton}
 		/>
 	);

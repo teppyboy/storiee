@@ -65,4 +65,20 @@ export const facebook: Elysia = new Elysia()
 				),
 			}),
 		},
+	)
+	.options("/facebook/video/html", async ({ set, request }) => {
+		set.headers["Access-Control-Allow-Headers"] =
+			request.headers.get("Access-Control-Request-Headers") ?? "";
+	})
+	.post(
+		"/facebook/video/html",
+		({ body }) => {
+			return {
+				message: "OK",
+				data: fb.video.getVideoInfoFromHTML(atob(body)),
+			};
+		},
+		{
+			body: t.String(),
+		},
 	);

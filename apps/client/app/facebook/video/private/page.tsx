@@ -1,13 +1,11 @@
 "use client";
 import { useToast } from "@/components/ui/use-toast";
 import { useRef, useState } from "react";
-import { z } from "zod";
-import VideoDownloadForm from "./form";
-import FAQ from "../story/faq";
+import FAQ from "../../story/faq";
 import VideoDownloadResult from "./result";
+import VideoDownloadForm from "./form";
 
 export default function Home() {
-	const zUrl = z.string().url();
 	const [results, setResults] = useState([]);
 	const resultsRef = useRef([]);
 	resultsRef.current = results;
@@ -41,21 +39,7 @@ export default function Home() {
 		}
 		setResults(resultsCopy);
 	}
-	function handleDownload(
-		videoUrl: string,
-		downloadMethod: string,
-		acceptTos: boolean,
-	) {
-		const urlParseResult = zUrl.safeParse(videoUrl);
-		if (urlParseResult.success === false) {
-			toast({
-				title: "Invalid URL",
-				description: "The URL you entered is not valid.",
-				duration: 5000,
-				variant: "destructive",
-			});
-			return;
-		}
+	function handleDownload(storyHtml: string, acceptTos: boolean) {
 		if (acceptTos === false) {
 			toast({
 				title: "Terms of Service",
@@ -72,12 +56,10 @@ export default function Home() {
 		curTrackResults[key] = results.length;
 		setTrackResults(curTrackResults);
 		console.log("Current track results: %o", curTrackResults);
-		console.log("Downloading story", videoUrl, downloadMethod);
 		const result = (
 			<VideoDownloadResult
 				key={key}
-				videoUrl={videoUrl}
-				method={downloadMethod}
+				storyHtml={storyHtml}
 				removeResult={() => removeResult(key)}
 			/>
 		);

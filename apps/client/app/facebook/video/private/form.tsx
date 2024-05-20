@@ -6,12 +6,12 @@ import React, { FormEvent, useState } from "react";
 import type { CheckedState } from "@radix-ui/react-checkbox";
 import { CardDownloadForm } from "@/components/storiee/card-download-form";
 
-export default function StoryDownloadForm({ onDownloadClicked }) {
+export default function VideoDownloadForm({ onDownloadClicked }) {
 	const [acceptToS, setAcceptToS] = useState(false);
 	async function onSubmit(event: FormEvent<HTMLFormElement>) {
 		event.preventDefault();
 		const formData = new FormData(event.currentTarget);
-		const storyUrl = formData.get("story-html") as string;
+		const storyUrl = formData.get("video-html") as string;
 		onDownloadClicked(storyUrl, acceptToS);
 	}
 	function handleAcceptToSChange(checked: CheckedState) {
@@ -24,7 +24,7 @@ export default function StoryDownloadForm({ onDownloadClicked }) {
 				<Label htmlFor="url">HTML</Label>
 				<Textarea
 					className="h-0.5"
-					name="story-html"
+					name="video-html"
 					placeholder="Paste the content of the HTML page, you can access that page by pressing Ctrl + U on PC or appending 'view-source:' before the URL on mobile"
 				/>
 			</div>
@@ -45,8 +45,8 @@ export default function StoryDownloadForm({ onDownloadClicked }) {
 	);
 	return (
 		<CardDownloadForm
-			title="Private Story Downloader"
-			description="Easily download any private Facebook stories."
+			title="Private Video Downloader"
+			description="Easily download any private Facebook videos."
 			content={content}
 			onSubmit={onSubmit}
 		/>
