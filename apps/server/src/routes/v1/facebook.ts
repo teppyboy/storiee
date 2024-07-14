@@ -27,10 +27,10 @@ export const facebook: Elysia = new Elysia()
 	)
 	// Workaround for CORS preflight request
 	// See https://github.com/elysiajs/elysia-cors/issues/48
-	// .options("/facebook/story/html", async ({ set, request }) => {
-	// 	set.headers["Access-Control-Allow-Headers"] =
-	// 		request.headers.get("Access-Control-Request-Headers") ?? "";
-	// })
+	.options("/facebook/story/html", async ({ set, request }) => {
+		set.headers["Access-Control-Allow-Headers"] =
+			request.headers.get("Access-Control-Request-Headers") ?? "";
+	})
 	.post(
 		"/facebook/story/html",
 		({ body }) => {
@@ -66,10 +66,10 @@ export const facebook: Elysia = new Elysia()
 			}),
 		},
 	)
-	// .options("/facebook/video/html", async ({ set, request }) => {
-	// 	set.headers["Access-Control-Allow-Headers"] =
-	// 		request.headers.get("Access-Control-Request-Headers") ?? "";
-	// })
+	.options("/facebook/video/html", async ({ set, request }) => {
+		set.headers["Access-Control-Allow-Headers"] =
+			request.headers.get("Access-Control-Request-Headers") ?? "";
+	})
 	.post(
 		"/facebook/video/html",
 		({ body }) => {
