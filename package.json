@@ -15,6 +15,7 @@
     "fmt": "turbo run fmt"
   },
   "devDependencies": {
-    "turbo": "^1.13.4"
-  }
+    "turbo": "^2.0.6"
+  },
+  "packageManager": "bun@1.1.17"
 }
