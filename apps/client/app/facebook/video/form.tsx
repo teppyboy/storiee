@@ -35,16 +35,16 @@ export default function VideoDownloadForm({ onDownloadClicked }) {
 		<>
 			<div className="text-sm text-muted-foreground my-2">
 				<Link href="/facebook/video/private">
-					<u>Interested in downloading private videos? Click here :)</u>
+					<u>Interested in downloading private videos/reels? Click here :)</u>
 				</Link>
 			</div>
 			<div className="grid w-full items-center gap-4">
 				<div className="flex flex-col space-y-1.5">
-					<Label htmlFor="url">Video URL</Label>
+					<Label htmlFor="url">Video/Reel URL</Label>
 					<Input
 						type="url"
 						name="url"
-						placeholder="URL of the video you want to download"
+						placeholder="URL of the video/reel you want to download"
 					/>
 				</div>
 				<div className="flex flex-col space-y-1.5">
@@ -83,8 +83,8 @@ export default function VideoDownloadForm({ onDownloadClicked }) {
 	);
 	return (
 		<CardDownloadForm
-			title="Video Downloader"
-			description="Easily download any public Facebook videos."
+			title="Videos/Reels Downloader"
+			description="Easily download any public Facebook videos/reels."
 			content={content}
 			onSubmit={onSubmit}
 		/>

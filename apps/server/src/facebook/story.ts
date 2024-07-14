@@ -347,8 +347,12 @@ class FacebookStory {
 		for (const script of document.querySelectorAll("script")) {
 			const length = Number(script.getAttribute("data-content-len"));
 			if (script.innerHTML.length !== length) {
-				logger.debug("Mismatch length: %d", length);
-				logger.debug("Script innerHTML length: %d", script.innerHTML.length);
+				logger.debug(
+					"Mismatch length (expected / innerHTML.length): %d / %d",
+					length,
+					script.innerHTML.length,
+				);
+				continue;
 			}
 			try {
 				const data = JSON.parse(script.innerHTML);

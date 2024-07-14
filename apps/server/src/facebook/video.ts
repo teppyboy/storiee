@@ -1,3 +1,4 @@
+import * as fs from "node:fs";
 import { JSDOM } from "jsdom";
 import logger from "../logger.js";
 import { findValue, getValue, getValueAll, sleep } from "../utils.js";
@@ -186,12 +187,12 @@ class FacebookVideo {
 		return { video };
 	}
 	/**
-	 * Gets the video information from the URL.
+	 * Gets the video/reel information from the URL.
 	 *
 	 * There are two methods here:
 	 * 1. `html` - HTML parsing: This method is faster and more reliable as
 	 * it can produce better results such as video with audio URLs and also the video resolution.
-	 * A major drawback is that it may break in the future if Facebook changes their JSON structure.
+	 * But it may break in the future if Facebook changes their JSON structure.
 	 *
 	 * 2. `intercept` - Request interception: This method is slower but more reliable because
 	 * it doesn't depend on the JSON structure entirely (it still does slightly for extra
@@ -235,9 +236,7 @@ class FacebookVideo {
 		}
 	}
 	getVideoInfoFromHTML(source: string) {
-		const dom = new JSDOM(source, {
-			runScripts: "outside-only",
-		});
+		const dom = new JSDOM(source);
 		const video: {
 			unified: {
 				browser_native_sd_url: string;
@@ -245,6 +244,7 @@ class FacebookVideo {
 			};
 			muted: RemoteVideo[];
 			audio: string | null;
+			thumbnail: string | null;
 		} = {
 			unified: {
 				browser_native_sd_url: "",
@@ -252,56 +252,52 @@ class FacebookVideo {
 			},
 			muted: [],
 			audio: null,
+			thumbnail: null,
 		};
-		const thumbnails: string[] = [];
 		// const document = page.mainFrame.window.document;
 		const document = dom.window.document;
-		for (const script of document.querySelectorAll("script")) {
+		scriptLoop: for (const script of document.querySelectorAll("script")) {
 			const length = Number(script.getAttribute("data-content-len"));
 			if (script.innerHTML.length !== length) {
-				logger.debug("Mismatch length: %d", length);
-				logger.debug("Script innerHTML length: %d", script.innerHTML.length);
+				logger.debug(
+					"Mismatch length (expected / innerHTML.length): %d / %d",
+					length,
+					script.innerHTML.length,
+				);
+				continue;
 			}
 			try {
 				const data = JSON.parse(script.innerHTML);
 				// Parse unified stories (videos with audio)
-				// biome-ignore lint/suspicious/noExplicitAny: <explanation>
-				const attachmentsArr: any = getValueAll(data, "attachments");
-				if (attachmentsArr.length > 0) {
-					logger.debug(`Attachment length: ${attachmentsArr.length}`);
-					// fs.writeFileSync("a.json", script.innerHTML);
-					for (const [i, attachments] of attachmentsArr.entries()) {
-						logger.debug("Attachments: %o", attachments);
-						logger.debug("Attachment URL: %s", attachments[0].url);
-						if (attachments[0].url === undefined) {
-							logger.debug(`Index: ${i}`);
-							if (!video.unified.browser_native_hd_url) {
-								video.unified = {
-									browser_native_sd_url:
-										attachments[0].media.browser_native_sd_url,
-									browser_native_hd_url:
-										attachments[0].media.browser_native_hd_url,
-								};
-							}
-							// Parse thumbnails
-							try {
-								thumbnails[i] =
-									attachments[0].media.preferred_thumbnail.image.url;
-							} catch (e) {
-								logger.warn(`Failed to parse thumbnail: ${e}`);
-							}
-						}
+				// biome-ignore lint/suspicious/noExplicitAny: Playback info by Facebook
+				const playbackVideo: any = getValue(data, "playback_video");
+				if (playbackVideo) {
+					logger.debug("Playback video: %o", playbackVideo);
+					video.unified = {
+						browser_native_sd_url: playbackVideo.browser_native_sd_url,
+						browser_native_hd_url: playbackVideo.browser_native_hd_url,
+					};
+					// Parse thumbnail
+					try {
+						logger.debug(
+							`Thumbnail: ${playbackVideo.preferred_thumbnail.image.uri}`,
+						);
+						video.thumbnail = playbackVideo.preferred_thumbnail.image.uri;
+					} catch (e) {
+						logger.warn(`Failed to parse thumbnail: ${e}`);
 					}
 				}
-				// Parse segmented stories (videos without audio, audio)
-				// biome-ignore lint/suspicious/noExplicitAny: An object here
+				// Parse segmented video (video without audio, audio)
+				// biome-ignore lint/suspicious/noExplicitAny: Complex object here
 				const videoDashes: any = getValue(
 					data,
 					"all_video_dash_prefetch_representations",
 				);
 				if (videoDashes) {
 					// Used for debugging only :skull:
-					// fs.writeFileSync("a.json", script.innerHTML);
+					if (logger.level === "debug") {
+						fs.writeFileSync(`debug/${length}_2.json`, script.innerHTML);
+					}
 					for (const [i, videoDash] of videoDashes.entries()) {
 						logger.debug("Video dash: %o", videoDash);
 						for (const representation of videoDash.representations) {
@@ -313,11 +309,16 @@ class FacebookVideo {
 									representation.height,
 									representation.bandwidth,
 									false,
-									thumbnails[i] || null,
+									null,
 								);
 								video.muted.push(vid);
 							} else {
+								logger.debug(
+									"Found audio, breaking (URL: %s)",
+									representation.base_url,
+								);
 								video.audio = representation.base_url;
+								break scriptLoop;
 							}
 						}
 					}

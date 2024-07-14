@@ -26,6 +26,14 @@ export default function StoryDownloadResult({
 			storyUrl,
 		)}?method=${method}`,
 		fetcher,
+		{
+			revalidateOnFocus: false,
+			revalidateOnMount: true,
+			revalidateOnReconnect: false,
+			refreshWhenOffline: false,
+			refreshWhenHidden: false,
+			refreshInterval: 0,
+		},
 	);
 	function handleRemoveResult() {
 		removeResult();

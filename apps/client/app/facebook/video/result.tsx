@@ -20,6 +20,14 @@ export default function VideoDownloadResult({
 			videoUrl,
 		)}?method=${method}`,
 		fetcher,
+		{
+			revalidateOnFocus: false,
+			revalidateOnMount: true,
+			revalidateOnReconnect: false,
+			refreshWhenOffline: false,
+			refreshWhenHidden: false,
+			refreshInterval: 0,
+		},
 	);
 	function handleRemoveResult() {
 		removeResult();
@@ -69,9 +77,11 @@ export default function VideoDownloadResult({
 			</div>
 		);
 	}
-	return (<VideoResult
-		data={data}
-		removeResultButton={removeResultButton}
-		videoUrl={videoUrl}
-	/>);
+	return (
+		<VideoResult
+			data={data}
+			removeResultButton={removeResultButton}
+			videoUrl={videoUrl}
+		/>
+	);
 }

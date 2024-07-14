@@ -10,10 +10,11 @@
     "build": "turbo run build",
     "start": "turbo run start",
     "dev": "turbo run dev --parallel",
+    "watch": "turbo run watch --parallel",
     "lint": "turbo run lint",
     "fmt": "turbo run fmt"
   },
   "devDependencies": {
-    "turbo": "^1.13.0"
+    "turbo": "^1.13.4"
   }
 }

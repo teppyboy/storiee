@@ -45,8 +45,8 @@ export default function VideoDownloadForm({ onDownloadClicked }) {
 	);
 	return (
 		<CardDownloadForm
-			title="Private Video Downloader"
-			description="Easily download any private Facebook videos."
+			title="Private Videos/Reels Downloader"
+			description="Easily download any private Facebook videos/reels."
 			content={content}
 			onSubmit={onSubmit}
 		/>
