@@ -13,7 +13,7 @@ facebook.get("/story/url/:url", async (c) => {
 		data: await fb.story.getStoryInfo(decodedUrl, c.req.query("method")),
 	});
 });
-facebook.post("/facebook/story/html", async (c) => {
+facebook.post("/story/html", async (c) => {
 	const body = await c.req.text();
 	return c.json({
 		message: "OK",
@@ -31,7 +31,7 @@ facebook.get("/video/url/:url", async (c) => {
 		data: await fb.video.getVideoInfo(decodedUrl, c.req.query("method")),
 	});
 });
-facebook.post("/facebook/video/html", async (c) => {
+facebook.post("/video/html", async (c) => {
 	const body = await c.req.text();
 	return c.json({
 		message: "OK",
