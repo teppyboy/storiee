@@ -10,7 +10,7 @@
     "build": "turbo run build",
     "start": "turbo run start",
     "dev": "turbo run dev --parallel",
-    "watch": "turbo run watch --parallel",
+    "watch": "turbo watch dev",
     "lint": "turbo run lint",
     "fmt": "turbo run fmt"
   },
