@@ -10,6 +10,9 @@ class FacebookVideo {
 	constructor(facebook: Facebook) {
 		this.#facebook = facebook;
 	}
+	/**
+	@deprecated This method is less reliable and may not work in the future.
+	*/
 	async getVideoInfoByIntercept(url: string) {
 		const page = await this.#facebook.getPage();
 		// Variables
@@ -17,8 +20,8 @@ class FacebookVideo {
 			unified:
 				| undefined
 				| {
-						browser_native_sd_url: string;
-						browser_native_hd_url: string;
+						browser_native_sd_url: string | null;
+						browser_native_hd_url: string | null;
 				  };
 			muted: RemoteVideo[];
 			audio: string | null;
@@ -190,16 +193,17 @@ class FacebookVideo {
 	 * Gets the video/reel information from the URL.
 	 *
 	 * There are two methods here:
-	 * 1. `html` - HTML parsing: This method is faster and more reliable as
-	 * it can produce better results such as video with audio URLs and also the video resolution.
-	 * But it may break in the future if Facebook changes their JSON structure.
+	 * 1. `html` - HTML parsing: This method is faster and more reliable as it can produce better 
+	 * results such as video with audio URLs and also the video resolution. But it may break in the
+	 * future if Facebook changes their JSON structure.
 	 *
-	 * 2. `intercept` - Request interception: This method is slower but more reliable because
-	 * it doesn't depend on the JSON structure entirely (it still does slightly for extra
-	 * information such as video resolution). But beware that results may not be as good as
-	 * the `html` method, and this method doesn't work with Chromium (due to the lack of video
-	 * codecs)
+	 * 2. `intercept` (*deprecated*) - Request interception: This method is slower and deprecated
+	 * because it's less reliable and may not work in the future. It's also more complex to implement 
+	 * and doesn't work with Chromium.
 	 *
+	 * `browser_native_sd_url` & `browser_native_hd_url` will be null if video is a video, otherwise 
+	 * it's a reel.
+	 * 
 	 * @param url
 	 * @param method
 	 * @returns object
@@ -212,8 +216,8 @@ class FacebookVideo {
 			unified:
 				| undefined
 				| {
-						browser_native_sd_url: string;
-						browser_native_hd_url: string;
+						browser_native_sd_url: string | null;
+						browser_native_hd_url: string | null;
 				  };
 			muted: RemoteVideo[];
 			audio: string | null;
@@ -239,16 +243,16 @@ class FacebookVideo {
 		const dom = new JSDOM(source);
 		const video: {
 			unified: {
-				browser_native_sd_url: string;
-				browser_native_hd_url: string;
+				browser_native_sd_url: string | null;
+				browser_native_hd_url: string | null;
 			};
 			muted: RemoteVideo[];
 			audio: string | null;
 			thumbnail: string | null;
 		} = {
 			unified: {
-				browser_native_sd_url: "",
-				browser_native_hd_url: "",
+				browser_native_sd_url: null,
+				browser_native_hd_url: null,
 			},
 			muted: [],
 			audio: null,
