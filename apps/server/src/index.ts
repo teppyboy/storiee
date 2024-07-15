@@ -1,7 +1,7 @@
 import * as fs from "node:fs";
-import "@bogeychan/elysia-polyfills/node/index.js";
-import { cors } from "@elysiajs/cors";
-import { Elysia } from "elysia";
+import { serve } from '@hono/node-server';
+import { Hono } from 'hono';
+import { cors } from 'hono/cors';
 import { chromium } from "playwright";
 import * as constants from "./constants.js";
 import Facebook from "./facebook/index.js";
@@ -83,21 +83,17 @@ await sleep(1000);
 const port = Number.parseInt(process.env.SERVER_PORT as string) || 8080;
 const host = process.env.SERVER_HOST || "127.0.0.1";
 
-logger.info("Starting server...");
-const app = new Elysia().use(cors()).use(api);
-app.listen(
-	{
-		port: port,
-		host: host,
-	},
-	(data) => {
-		logger.info(`Server started on http://${data.hostname}:${data.port}`);
-	},
-);
-
+logger.info(`Starting server on ${host}:${port}...`);
+const app = new Hono()
+app.get('/', (c) => c.text('Hello Node.js!'));
+app.use(cors());
+app.route("/api", api);
+serve({
+	fetch: app.fetch,
+	port: port,
+	hostname: host
+})
 export { facebook };
 
 // For our server and Next.js
 export type App = typeof app;
-export const GET = app.handle;
-export const POST = app.handle;
