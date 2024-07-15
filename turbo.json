@@ -1,6 +1,6 @@
 {
   "$schema": "https://turbo.build/schema.json",
-  "globalEnv": ["BROWSER_CHANNEL", "HEADLESS", "NEXT_PUBLIC_API_URL", "API_URL"],
+  "globalEnv": ["SERVER_HOST", "SERVER_PORT", "BROWSER_CHANNEL", "HEADLESS", "NEXT_PUBLIC_API_URL", "API_URL"],
   "tasks": {
     "build": {
       "dependsOn": [
