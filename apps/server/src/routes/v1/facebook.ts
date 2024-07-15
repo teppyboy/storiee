@@ -1,84 +1,41 @@
-import { Elysia, t } from "elysia";
+import { Hono } from 'hono';
 import { facebook as fb } from "../../index.js";
 
-export const facebook: Elysia = new Elysia()
-	.get(
-		"/facebook/story/url/:url",
-		async ({ query, params: url }) => {
-			let decodedUrl = decodeURIComponent(url.url);
-			if (decodedUrl.startsWith("https:%2F%2Fwww.facebook.com")) {
-				decodedUrl = decodeURIComponent(decodedUrl);
-			}
-			return {
-				message: "OK",
-				data: await fb.story.getStoryInfo(decodedUrl, query.method),
-			};
-		},
-		{
-			query: t.Object({
-				method: t.Optional(
-					t.String({
-						enum: ["html", "intercept"],
-						error: "Invalid method. Must be 'html' or 'intercept'",
-					}),
-				),
-			}),
-		},
-	)
-	// Workaround for CORS preflight request
-	// See https://github.com/elysiajs/elysia-cors/issues/48
-	.options("/facebook/story/html", async ({ set, request }) => {
-		set.headers["Access-Control-Allow-Headers"] =
-			request.headers.get("Access-Control-Request-Headers") ?? "";
-	})
-	.post(
-		"/facebook/story/html",
-		({ body }) => {
-			return {
-				message: "OK",
-				data: fb.story.getStoryInfoFromHTML(atob(body)),
-			};
-		},
-		{
-			body: t.String(),
-		},
-	)
-	.get(
-		"/facebook/video/url/:url",
-		async ({ query, params: url }) => {
-			let decodedUrl = decodeURIComponent(url.url);
-			if (decodedUrl.startsWith("https:%2F%2Fwww.facebook.com")) {
-				decodedUrl = decodeURIComponent(decodedUrl);
-			}
-			return {
-				message: "OK",
-				data: await fb.video.getVideoInfo(decodedUrl, query.method),
-			};
-		},
-		{
-			query: t.Object({
-				method: t.Optional(
-					t.String({
-						enum: ["html", "intercept"],
-						error: "Invalid method. Must be 'html' or 'intercept'",
-					}),
-				),
-			}),
-		},
-	)
-	.options("/facebook/video/html", async ({ set, request }) => {
-		set.headers["Access-Control-Allow-Headers"] =
-			request.headers.get("Access-Control-Request-Headers") ?? "";
-	})
-	.post(
-		"/facebook/video/html",
-		({ body }) => {
-			return {
-				message: "OK",
-				data: fb.video.getVideoInfoFromHTML(atob(body)),
-			};
-		},
-		{
-			body: t.String(),
-		},
-	);
+const facebook = new Hono();
+facebook.get("/story/url/:url", async (c) => {
+	const url = c.req.param("url");
+	let decodedUrl = decodeURIComponent(url);
+	if (decodedUrl.startsWith("https:%2F%2Fwww.facebook.com")) {
+		decodedUrl = decodeURIComponent(decodedUrl);
+	}
+	return c.json({
+		message: "OK",
+		data: await fb.story.getStoryInfo(decodedUrl, c.req.query("method")),
+	});
+});
+facebook.post("/facebook/story/html", async (c) => {
+	const body = await c.req.text();
+	return c.json({
+		message: "OK",
+		data: fb.story.getStoryInfoFromHTML(atob(body)),
+	});
+});
+facebook.get("/video/url/:url", async (c) => {
+	const url = c.req.param("url");
+	let decodedUrl = decodeURIComponent(url);
+	if (decodedUrl.startsWith("https:%2F%2Fwww.facebook.com")) {
+		decodedUrl = decodeURIComponent(decodedUrl);
+	}
+	return c.json({
+		message: "OK",
+		data: await fb.video.getVideoInfo(decodedUrl, c.req.query("method")),
+	});
+});
+facebook.post("/facebook/video/html", async (c) => {
+	const body = await c.req.text();
+	return c.json({
+		message: "OK",
+		data: fb.video.getVideoInfoFromHTML(atob(body)),
+	});
+});
+export default facebook;
