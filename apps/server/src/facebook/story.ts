@@ -1,3 +1,4 @@
+import * as fs from "node:fs";
 import { JSDOM } from "jsdom";
 import logger from "../logger.js";
 import { findValue, getValue, getValueAll, sleep } from "../utils.js";
@@ -9,6 +10,9 @@ class FacebookStory {
 	constructor(facebook: Facebook) {
 		this.#facebook = facebook;
 	}
+	/**
+	@deprecated This method is less reliable and may not work in the future.
+	*/
 	async getStoryInfoByIntercept(url: string) {
 		const page = await this.#facebook.getPage();
 		// Variables
@@ -273,15 +277,13 @@ class FacebookStory {
 	 * Gets the Facebook story information.
 	 *
 	 * There are two methods here:
-	 * 1. `html` - HTML parsing: This method is faster and more reliable as
-	 * it can produce better results such as video with audio URLs and also the video resolution.
-	 * A major drawback is that it may break in the future if Facebook changes their JSON structure.
+	 * 1. `html` - HTML parsing: This method is faster and more reliable as it can produce better 
+	 * results such as video with audio URLs and also the video resolution. But it may break in the
+	 * future if Facebook changes their JSON structure.
 	 *
-	 * 2. `intercept` - Request interception: This method is slower but more reliable because
-	 * it doesn't depend on the JSON structure entirely (it still does slightly for extra
-	 * information such as video resolution). But beware that results may not be as good as
-	 * the `html` method, and this method doesn't work with Chromium (due to the lack of video
-	 * codecs)
+	 * 2. `intercept` (*deprecated*) - Request interception: This method is slower and deprecated
+	 * because it's less reliable and may not work in the future. It's also more complex to implement 
+	 * and doesn't work with Chromium.
 	 *
 	 * @param url
 	 * @param method
@@ -319,9 +321,7 @@ class FacebookStory {
 		}
 	}
 	getStoryInfoFromHTML(source: string) {
-		const dom = new JSDOM(source, {
-			runScripts: "dangerously",
-		});
+		const dom = new JSDOM(source);
 		const stories: [
 			{
 				unified: {
@@ -330,6 +330,7 @@ class FacebookStory {
 				};
 				muted: RemoteVideo[];
 				audio: string | null;
+				thumbnail: string | null;
 			},
 		] = [
 			{
@@ -339,6 +340,7 @@ class FacebookStory {
 				},
 				muted: [],
 				audio: null,
+				thumbnail: null
 			},
 		];
 		const thumbnails: string[] = [];
@@ -361,10 +363,11 @@ class FacebookStory {
 				const attachmentsArr: any = getValueAll(data, "attachments");
 				if (attachmentsArr.length > 0) {
 					logger.debug(`Attachment length: ${attachmentsArr.length}`);
-					// fs.writeFileSync("a.json", script.innerHTML);
+					if (logger.level === "debug") {
+						fs.writeFileSync(`debug/story_${length}_1.json`, script.innerHTML);
+					}
 					for (const [i, attachments] of attachmentsArr.entries()) {
-						logger.debug("Attachments: %o", attachments);
-						logger.debug(`Index: ${i}`);
+						logger.debug(`Attachments ${i}: %o`, attachments);
 						if (!stories[i]) {
 							stories[i] = {
 								unified: {
@@ -373,6 +376,7 @@ class FacebookStory {
 								},
 								muted: [],
 								audio: null,
+								thumbnail: null
 							};
 						}
 						stories[i].unified = {
@@ -382,7 +386,7 @@ class FacebookStory {
 						// Parse thumbnails
 						try {
 							thumbnails[i] =
-								attachments[0].media.preferred_thumbnail.image.url;
+								attachments[0].media.preferred_thumbnail.image.uri;
 						} catch (e) {
 							logger.warn(`Failed to parse thumbnail: ${e}`);
 						}
@@ -395,6 +399,9 @@ class FacebookStory {
 					"all_video_dash_prefetch_representations",
 				);
 				if (videoDashes) {
+					if (logger.level === "debug") {
+						fs.writeFileSync(`debug/story_${length}_2.json`, script.innerHTML);
+					}
 					for (const [i, videoDash] of videoDashes.entries()) {
 						for (const representation of videoDash.representations) {
 							if (!stories[i]) {
@@ -405,6 +412,7 @@ class FacebookStory {
 									},
 									muted: [],
 									audio: null,
+									thumbnail: null
 								};
 							}
 							if (representation.mime_type.includes("video")) {
