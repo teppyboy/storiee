@@ -277,12 +277,12 @@ class FacebookStory {
 	 * Gets the Facebook story information.
 	 *
 	 * There are two methods here:
-	 * 1. `html` - HTML parsing: This method is faster and more reliable as it can produce better 
+	 * 1. `html` - HTML parsing: This method is faster and more reliable as it can produce better
 	 * results such as video with audio URLs and also the video resolution. But it may break in the
 	 * future if Facebook changes their JSON structure.
 	 *
 	 * 2. `intercept` (*deprecated*) - Request interception: This method is slower and deprecated
-	 * because it's less reliable and may not work in the future. It's also more complex to implement 
+	 * because it's less reliable and may not work in the future. It's also more complex to implement
 	 * and doesn't work with Chromium.
 	 *
 	 * @param url
@@ -304,20 +304,38 @@ class FacebookStory {
 			audio: string | null;
 		}[];
 	}> {
+		try {
+			const urlObj = new URL(url);
+			if (urlObj.hostname !== "www.facebook.com") {
+				throw new URIError(
+					"Invalid URL, only Facebook Stories URLs are allowed.",
+				);
+			}
+			if (urlObj.pathname !== "/stories/") {
+				throw new URIError(
+					"Invalid URL, only Facebook Stories URLs are allowed.",
+				);
+			}
+		} catch (e) {
+			throw new URIError(
+				"Invalid URL, only Facebook Stories URLs are allowed.",
+			);
+		}
 		logger.debug("Story URL: %s", url);
 		switch (method) {
 			case "html": {
 				const page = await this.#facebook.getPage();
 				await page.goto(url);
 				const source = await page.content();
-				await page.close();
+				// We don't need to wait for the page to close
+				page.close().catch((e) => logger.error(`Failed to close page: ${e}`));
 				return this.getStoryInfoFromHTML(source);
 			}
 			case "intercept": {
 				return this.getStoryInfoByIntercept(url);
 			}
 			default:
-				throw new Error("Invalid method.");
+				throw new TypeError("Invalid method.");
 		}
 	}
 	getStoryInfoFromHTML(source: string) {
@@ -340,7 +358,7 @@ class FacebookStory {
 				},
 				muted: [],
 				audio: null,
-				thumbnail: null
+				thumbnail: null,
 			},
 		];
 		const thumbnails: string[] = [];
@@ -359,7 +377,7 @@ class FacebookStory {
 			try {
 				const data = JSON.parse(script.innerHTML);
 				// Parse unified stories (videos with audio)
-				// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+				// biome-ignore lint/suspicious/noExplicitAny: facebook.com is a mess.
 				const attachmentsArr: any = getValueAll(data, "attachments");
 				if (attachmentsArr.length > 0) {
 					logger.debug(`Attachment length: ${attachmentsArr.length}`);
@@ -376,7 +394,7 @@ class FacebookStory {
 								},
 								muted: [],
 								audio: null,
-								thumbnail: null
+								thumbnail: null,
 							};
 						}
 						stories[i].unified = {
@@ -412,7 +430,7 @@ class FacebookStory {
 									},
 									muted: [],
 									audio: null,
-									thumbnail: null
+									thumbnail: null,
 								};
 							}
 							if (representation.mime_type.includes("video")) {

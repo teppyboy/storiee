@@ -2,10 +2,8 @@
 import { StoryResult } from "@/components/storiee/story-result";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import fetcher from "@/components/storiee/fetcher";
 import useSWR from "swr";
-
-// biome-ignore lint/suspicious/noExplicitAny: Plain fetch so any is fine
-const fetcher = (...args: any[]) => fetch(...args).then((res) => res.json());
 
 type StoryDownloadResultProps = {
 	storyUrl: string;
@@ -61,7 +59,15 @@ export default function StoryDownloadResult({
 						{removeResultButton}
 					</div>
 				</CardHeader>
-				<CardContent>Failed to download story information.</CardContent>
+				<CardContent>
+					An error occurred while downloading the video information:
+					<br />
+					<pre>
+						<code>{error.message}</code>
+					</pre>
+					<br />
+					Error code: <code>{error.code}</code> | <code>{error.error}</code>
+				</CardContent>
 			</Card>
 		);
 	}

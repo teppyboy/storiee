@@ -9,10 +9,8 @@ import {
 	CardTitle,
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import fetcher from "@/components/storiee/fetcher";
 import useSWR from "swr";
-
-// biome-ignore lint/suspicious/noExplicitAny: <explanation>
-const fetcher = (...args: any[]) => fetch(...args).then((res) => res.json());
 
 export default function StoryDownloadResult({
 	storyUrl,

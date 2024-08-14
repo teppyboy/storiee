@@ -19,16 +19,16 @@
     "@biomejs/biome": "1.5.3",
     "@types/jsdom": "^21.1.7",
     "pino-pretty": "^10.3.1",
-    "tsx": "^4.16.2",
-    "typescript": "^5.5.3"
+    "tsx": "^4.17.0",
+    "typescript": "^5.5.4"
   },
   "dependencies": {
     "@hono/node-server": "^1.12.0",
-    "electron": "^30.2.0",
-    "hono": "^4.4.13",
-    "jsdom": "^24.1.0",
+    "electron": "^30.3.1",
+    "hono": "^4.5.5",
+    "jsdom": "^24.1.1",
     "pino": "^8.21.0",
-    "playwright": "^1.45.1"
+    "playwright": "^1.46.0"
   },
   "trustedDependencies": [
     "@biomejs/biome",

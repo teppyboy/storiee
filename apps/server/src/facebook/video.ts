@@ -1,7 +1,7 @@
 import * as fs from "node:fs";
 import { JSDOM } from "jsdom";
 import logger from "../logger.js";
-import { findValue, getValue, getValueAll, sleep } from "../utils.js";
+import { findValue, getValue, sleep } from "../utils.js";
 import { RemoteVideo } from "./classes.js";
 import Facebook from "./index.js";
 
@@ -193,17 +193,17 @@ class FacebookVideo {
 	 * Gets the video/reel information from the URL.
 	 *
 	 * There are two methods here:
-	 * 1. `html` - HTML parsing: This method is faster and more reliable as it can produce better 
+	 * 1. `html` - HTML parsing: This method is faster and more reliable as it can produce better
 	 * results such as video with audio URLs and also the video resolution. But it may break in the
 	 * future if Facebook changes their JSON structure.
 	 *
 	 * 2. `intercept` (*deprecated*) - Request interception: This method is slower and deprecated
-	 * because it's less reliable and may not work in the future. It's also more complex to implement 
+	 * because it's less reliable and may not work in the future. It's also more complex to implement
 	 * and doesn't work with Chromium.
 	 *
-	 * `browser_native_sd_url` & `browser_native_hd_url` will be null if video is a video, otherwise 
+	 * `browser_native_sd_url` & `browser_native_hd_url` will be null if video is a video, otherwise
 	 * it's a reel.
-	 * 
+	 *
 	 * @param url
 	 * @param method
 	 * @returns object
@@ -223,20 +223,45 @@ class FacebookVideo {
 			audio: string | null;
 		};
 	}> {
+		// Check for URL validity
+		// share/v/ is for videos, share/r/ is for reels
+		try {
+			const urlObj = new URL(url);
+			if (urlObj.hostname !== "www.facebook.com") {
+				throw new URIError(
+					"Invalid URL, only Facebook Video/Reel URLs are allowed.",
+				);
+			}
+			if (
+				!["/reel/", "/watch", "/share/v/", "/share/r/"].some((word) =>
+					urlObj.pathname.startsWith(word),
+				) &&
+				!urlObj.pathname.includes("/videos/")
+			) {
+				throw new URIError(
+					"Invalid URL, only Facebook Video/Reel URLs are allowed.",
+				);
+			}
+		} catch (e) {
+			throw new URIError(
+				"Invalid URL, only Facebook Video/Reel URLs are allowed.",
+			);
+		}
 		logger.debug("Video URL: %s", url);
 		switch (method) {
 			case "html": {
 				const page = await this.#facebook.getPage();
 				await page.goto(url);
 				const source = await page.content();
-				await page.close();
+				// We don't need to wait for the page to close
+				page.close().catch((e) => logger.error(`Failed to close page: ${e}`));
 				return this.getVideoInfoFromHTML(source);
 			}
 			case "intercept": {
 				return await this.getVideoInfoByIntercept(url);
 			}
 			default:
-				throw new Error("Invalid method.");
+				throw new TypeError("Invalid method.");
 		}
 	}
 	getVideoInfoFromHTML(source: string) {
@@ -272,6 +297,10 @@ class FacebookVideo {
 			}
 			try {
 				const data = JSON.parse(script.innerHTML);
+				// Used for debugging only :skull:
+				if (logger.level === "debug") {
+					fs.writeFileSync(`debug/video_${length}.json`, script.innerHTML);
+				}
 				// Parse unified stories (videos with audio)
 				// biome-ignore lint/suspicious/noExplicitAny: Playback info by Facebook
 				const playbackVideo: any = getValue(data, "playback_video");
@@ -283,10 +312,8 @@ class FacebookVideo {
 					};
 					// Parse thumbnail
 					try {
-						logger.debug(
-							`Thumbnail: ${playbackVideo.preferred_thumbnail.image.uri}`,
-						);
 						video.thumbnail = playbackVideo.preferred_thumbnail.image.uri;
+						logger.debug(`Thumbnail: ${video.thumbnail}`);
 					} catch (e) {
 						logger.warn(`Failed to parse thumbnail: ${e}`);
 					}
@@ -298,10 +325,6 @@ class FacebookVideo {
 					"all_video_dash_prefetch_representations",
 				);
 				if (videoDashes) {
-					// Used for debugging only :skull:
-					if (logger.level === "debug") {
-						fs.writeFileSync(`debug/${length}_2.json`, script.innerHTML);
-					}
 					for (const [i, videoDash] of videoDashes.entries()) {
 						logger.debug("Video dash: %o", videoDash);
 						for (const representation of videoDash.representations) {

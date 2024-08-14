@@ -55,6 +55,11 @@ class Facebook {
 			context.addCookies(JSON.parse(cookie));
 			const page = await context.newPage();
 			await page.goto("https://www.facebook.com/");
+			if (await this.isAccountCheckpoint(page)) {
+				logger.warn(`Account in ${file} is locked (checkpoint), ignoring...`);
+				page.close();
+				continue;
+			}
 			if (await this.isAccountLoggedOut(page)) {
 				logger.warn(`Account in ${file} is logged out, re-logging in...`);
 				try {
@@ -91,6 +96,15 @@ class Facebook {
 			await this.reloginAccount(page, contextData);
 		}
 		return page;
+	}
+	async isAccountCheckpoint(page: Page) {
+		const url = new URL(page.url());
+		if (url.pathname.startsWith("/checkpoint")) {
+			// The account is locked, we can't continue.
+			logger.error("Checkpoint detected, KEKW.");
+			return true;
+		}
+		return false;
 	}
 	async isAccountLoggedOut(page: Page) {
 		try {

@@ -59,8 +59,7 @@ export default function Home() {
 		if (acceptTos === false) {
 			toast({
 				title: "Terms of Service",
-				description:
-					"You must accept the terms of service to download stories.",
+				description: "You must accept the terms of service to download videos.",
 				duration: 5000,
 				variant: "destructive",
 			});

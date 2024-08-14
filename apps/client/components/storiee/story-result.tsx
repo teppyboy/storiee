@@ -30,8 +30,11 @@ function StoryResult({ data, removeResultButton, storyUrl }: StoryResultProps) {
 						</div>
 					</CardHeader>
 					<CardContent>
-						An error occurred while downloading the story information:{" "}
-						<code>{data.message}</code>
+						An error occurred while downloading the story information:
+						<br />
+						<pre>
+							<code>{data.message}</code>
+						</pre>
 						<br />
 						Error code: <code>{data.error}</code>
 					</CardContent>

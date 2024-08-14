@@ -29,8 +29,11 @@ function VideoResult({ data, removeResultButton, videoUrl }: VideoResultProps) {
 						</div>
 					</CardHeader>
 					<CardContent>
-						An error occurred while downloading the video information:{" "}
-						<code>{data.message}</code>
+						An error occurred while downloading the video information:
+						<br />
+						<pre>
+							<code>{data.message}</code>
+						</pre>
 						<br />
 						Error code: <code>{data.error}</code>
 					</CardContent>
