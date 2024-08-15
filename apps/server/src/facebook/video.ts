@@ -233,8 +233,8 @@ class FacebookVideo {
 				);
 			}
 			if (
-				!["/reel/", "/watch", "/share/v/", "/share/r/", "/video.php/"].some((word) =>
-					urlObj.pathname.startsWith(word),
+				!["/reel/", "/watch", "/share/v/", "/share/r/", "/video.php/"].some(
+					(word) => urlObj.pathname.startsWith(word),
 				) &&
 				!urlObj.pathname.includes("/videos/")
 			) {
@@ -316,6 +316,25 @@ class FacebookVideo {
 						logger.debug(`Thumbnail: ${video.thumbnail}`);
 					} catch (e) {
 						logger.warn(`Failed to parse thumbnail: ${e}`);
+					}
+				} else {
+					logger.debug("Playback video not found, trying another method...");
+					// biome-ignore lint/suspicious/noExplicitAny: Stfu TypeScript
+					const videoData = getValue(data, "data") as any;
+					if (videoData) {
+						// Parse video with audio
+						const dataVideo = videoData.video;
+						video.unified = {
+							browser_native_sd_url: dataVideo.browser_native_sd_url,
+							browser_native_hd_url: dataVideo.browser_native_hd_url,
+						};
+						// Parse thumbnail
+						try {
+							video.thumbnail = dataVideo.preferred_thumbnail.image.uri;
+							logger.debug(`Thumbnail: ${video.thumbnail}`);
+						} catch (e) {
+							logger.warn(`Failed to parse thumbnail: ${e}`);
+						}
 					}
 				}
 				// Parse segmented video (video without audio, audio)
