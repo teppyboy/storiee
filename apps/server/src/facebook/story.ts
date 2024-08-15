@@ -314,7 +314,8 @@ class FacebookStory {
 			if (
 				!["/stories/", "/story.php/"].some((word) =>
 					urlObj.pathname.startsWith(word),
-				) && !urlObj.pathname.includes("/posts/")
+				) &&
+				!urlObj.pathname.includes("/posts/")
 			) {
 				throw new URIError(
 					"Invalid URL, only Facebook Stories/Posts URLs are allowed.",

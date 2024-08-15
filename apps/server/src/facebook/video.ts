@@ -201,9 +201,6 @@ class FacebookVideo {
 	 * because it's less reliable and may not work in the future. It's also more complex to implement
 	 * and doesn't work with Chromium.
 	 *
-	 * `browser_native_sd_url` & `browser_native_hd_url` will be null if video is a video, otherwise
-	 * it's a reel.
-	 *
 	 * @param url
 	 * @param method
 	 * @returns object
