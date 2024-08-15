@@ -308,17 +308,21 @@ class FacebookStory {
 			const urlObj = new URL(url);
 			if (urlObj.hostname !== "www.facebook.com") {
 				throw new URIError(
-					"Invalid URL, only Facebook Stories URLs are allowed.",
+					"Invalid URL, only Facebook Stories/Posts URLs are allowed.",
 				);
 			}
-			if (urlObj.pathname !== "/stories/") {
+			if (
+				!["/stories/", "/story.php/"].some((word) =>
+					urlObj.pathname.startsWith(word),
+				) && !urlObj.pathname.includes("/posts/")
+			) {
 				throw new URIError(
-					"Invalid URL, only Facebook Stories URLs are allowed.",
+					"Invalid URL, only Facebook Stories/Posts URLs are allowed.",
 				);
 			}
 		} catch (e) {
 			throw new URIError(
-				"Invalid URL, only Facebook Stories URLs are allowed.",
+				"Invalid URL, only Facebook Stories/Posts URLs are allowed.",
 			);
 		}
 		logger.debug("Story URL: %s", url);
@@ -386,6 +390,58 @@ class FacebookStory {
 					}
 					for (const [i, attachments] of attachmentsArr.entries()) {
 						logger.debug(`Attachments ${i}: %o`, attachments);
+						// Post parsing
+						if (attachments.length === 1) {
+							const subAttachments = getValue(
+								attachments[0],
+								"all_subattachments",
+								// biome-ignore lint/suspicious/noExplicitAny: I want TypeScript to stfu
+							) as any;
+							if (subAttachments) {
+								logger.debug("Subattachments detected.");
+								// This is not actually a story, but a post.
+								// Parse videos with audio
+								let videoIdx = -1;
+								for (const [_, node] of subAttachments.nodes.entries()) {
+									switch (node.media.__typename) {
+										case "Photo":
+											// Parse photos
+											logger.debug("Photo not supported yet.");
+											break;
+										case "Video": {
+											videoIdx += 1;
+											if (!stories[videoIdx]) {
+												stories[videoIdx] = {
+													unified: {
+														browser_native_sd_url: "",
+														browser_native_hd_url: "",
+													},
+													muted: [],
+													audio: null,
+													thumbnail: null,
+												};
+											}
+											const videoGridRenderer = node.media.video_grid_renderer;
+											try {
+												stories[videoIdx].thumbnail =
+													videoGridRenderer.preferred_thumbnail.image.uri;
+											} catch (e) {
+												logger.warn(`Failed to parse thumbnail: ${e}`);
+												stories[videoIdx].thumbnail =
+													node.media.viewer_image.uri;
+											}
+											const video = videoGridRenderer.video;
+											stories[videoIdx].unified = {
+												browser_native_sd_url: video.browser_native_sd_url,
+												browser_native_hd_url: video.browser_native_hd_url,
+											};
+										}
+									}
+								}
+								continue;
+							}
+						}
+						// End of post parsing
 						if (!stories[i]) {
 							stories[i] = {
 								unified: {
@@ -397,10 +453,17 @@ class FacebookStory {
 								thumbnail: null,
 							};
 						}
-						stories[i].unified = {
-							browser_native_sd_url: attachments[0].media.browser_native_sd_url,
-							browser_native_hd_url: attachments[0].media.browser_native_hd_url,
-						};
+						try {
+							stories[i].unified = {
+								browser_native_sd_url:
+									attachments[0].media.browser_native_sd_url,
+								browser_native_hd_url:
+									attachments[0].media.browser_native_hd_url,
+							};
+						} catch (e) {
+							logger.warn(`Failed to parse unified story: ${e}`);
+							continue;
+						}
 						// Parse thumbnails
 						try {
 							thumbnails[i] =
@@ -467,7 +530,14 @@ class FacebookStory {
 		if (stories[0].unified.browser_native_sd_url === "") {
 			stories.shift();
 		}
-		return { stories };
+		// Remove empty stories
+		const filteredStories = stories.filter(
+			(e) =>
+				e.unified.browser_native_sd_url !== "" &&
+				e.muted.length > 0 &&
+				e.audio !== null,
+		);
+		return { stories: filteredStories };
 	}
 }
 
