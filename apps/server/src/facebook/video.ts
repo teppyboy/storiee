@@ -233,7 +233,7 @@ class FacebookVideo {
 				);
 			}
 			if (
-				!["/reel/", "/watch", "/share/v/", "/share/r/"].some((word) =>
+				!["/reel/", "/watch", "/share/v/", "/share/r/", "/video.php/"].some((word) =>
 					urlObj.pathname.startsWith(word),
 				) &&
 				!urlObj.pathname.includes("/videos/")
