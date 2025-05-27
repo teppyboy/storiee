@@ -15,7 +15,10 @@
     "fmt": "turbo run fmt"
   },
   "devDependencies": {
-    "turbo": "^2.0.12"
+    "turbo": "^2.5.3"
   },
-  "packageManager": "bun@1.1.17"
+  "packageManager": "bun@1.1.17",
+  "trustedDependencies": [
+    "esbuild"
+  ]
 }
