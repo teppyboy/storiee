@@ -224,7 +224,7 @@ class FacebookVideo {
 		// share/v/ is for videos, share/r/ is for reels
 		try {
 			const urlObj = new URL(url);
-			if (urlObj.hostname !== "www.facebook.com") {
+			if (!["www.facebook.com", "facebook.com", "web.facebook.com"].includes(urlObj.hostname)) {
 				throw new URIError(
 					"Invalid URL, only Facebook Video/Reel URLs are allowed.",
 				);

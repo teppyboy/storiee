@@ -306,7 +306,7 @@ class FacebookStory {
 	}> {
 		try {
 			const urlObj = new URL(url);
-			if (urlObj.hostname !== "www.facebook.com") {
+			if (!["www.facebook.com", "facebook.com", "web.facebook.com"].includes(urlObj.hostname)) {
 				throw new URIError(
 					"Invalid URL, only Facebook Stories/Posts URLs are allowed.",
 				);
